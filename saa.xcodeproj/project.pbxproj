@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8EDC7CB22FD9720000FAAC20 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 8EDC7CB02FD9710000FAAC20 /* Supabase */; };
+		8EDC7CB32FD9720000FAAC20 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 8EDC7CB12FD9710000FAAC20 /* GoogleSignIn */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		8E7EADBA2FD6BEE60092500C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,11 +32,26 @@
 		8E7EADAC2FD6BEE50092500C /* saa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = saa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E7EADB92FD6BEE60092500C /* saaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = saaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E7EADC32FD6BEE60092500C /* saaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = saaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8EDC7CC02FD9800000FAAC20 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = saa/Configuration/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		8EDC7CC12FD9800000FAAC20 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = saa/Configuration/Release.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8EDC7CAC2FD9700000FAAC20 /* Exceptions for "saa" folder in "saa" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8E7EADAB2FD6BEE50092500C /* saa */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8E7EADAE2FD6BEE50092500C /* saa */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8EDC7CAC2FD9700000FAAC20 /* Exceptions for "saa" folder in "saa" target */,
+			);
 			path = saa;
 			sourceTree = "<group>";
 		};
@@ -52,6 +72,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8EDC7CB22FD9720000FAAC20 /* Supabase in Frameworks */,
+				8EDC7CB32FD9720000FAAC20 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +94,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8E37D2F12FDA6DDD00DB6655 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				8EDC7CC02FD9800000FAAC20 /* Debug.xcconfig */,
+				8EDC7CC12FD9800000FAAC20 /* Release.xcconfig */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		8E7EADA32FD6BEE50092500C = {
 			isa = PBXGroup;
 			children = (
@@ -79,6 +110,7 @@
 				8E7EADBC2FD6BEE60092500C /* saaTests */,
 				8E7EADC62FD6BEE60092500C /* saaUITests */,
 				8E7EADAD2FD6BEE50092500C /* Products */,
+				8E37D2F12FDA6DDD00DB6655 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -112,6 +144,8 @@
 			);
 			name = saa;
 			packageProductDependencies = (
+				8EDC7CB02FD9710000FAAC20 /* Supabase */,
+				8EDC7CB12FD9710000FAAC20 /* GoogleSignIn */,
 			);
 			productName = saa;
 			productReference = 8E7EADAC2FD6BEE50092500C /* saa.app */;
@@ -195,6 +229,10 @@
 			);
 			mainGroup = 8E7EADA32FD6BEE50092500C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8EDC7CAA2FD9606E00FAAC20 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				8EDC7CAB2FD9609A00FAAC20 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8E7EADAD2FD6BEE50092500C /* Products */;
 			projectDirPath = "";
@@ -392,6 +430,7 @@
 		};
 		8E7EADCE2FD6BEE60092500C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8EDC7CC02FD9800000FAAC20 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -420,6 +459,7 @@
 		};
 		8E7EADCF2FD6BEE60092500C /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8EDC7CC12FD9800000FAAC20 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -570,6 +610,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8EDC7CAA2FD9606E00FAAC20 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+		8EDC7CAB2FD9609A00FAAC20 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS/";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8EDC7CB02FD9710000FAAC20 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8EDC7CAA2FD9606E00FAAC20 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		8EDC7CB12FD9710000FAAC20 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8EDC7CAB2FD9609A00FAAC20 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8E7EADA42FD6BEE50092500C /* Project object */;
 }

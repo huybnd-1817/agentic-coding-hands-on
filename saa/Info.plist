@@ -2,16 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Supabase config — values injected at build time via xcconfig → Info.plist substitution.
-	     Set SUPABASE_URL and SUPABASE_ANON_KEY in saa/Configuration/Debug.xcconfig (gitignored). -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>SUPABASE_URL</key>
 	<string>$(SUPABASE_URL)</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
-
-	<!-- Google Sign-In URL scheme.
-	     Replace REPLACE_WITH_REVERSED_CLIENT_ID with the REVERSED_CLIENT_ID value
-	     from your downloaded GoogleService-Info.plist (e.g. com.googleusercontent.apps.123-abc). -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -21,12 +35,10 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.REPLACE_WITH_REVERSED_CLIENT_ID</string>
+				<string>com.googleusercontent.apps.716717032306-gjn9rqe55luaq2003sbg0rh1thqq206b</string>
 			</array>
 		</dict>
 	</array>
-
-	<!-- Migrated from auto-generated INFOPLIST_KEY_* (pbxproj) after switching GENERATE_INFOPLIST_FILE = NO. -->
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
