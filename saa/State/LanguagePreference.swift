@@ -1,11 +1,10 @@
+import Combine
 import Foundation
-import Observation
 
-@Observable
-final class LanguagePreference {
+final class LanguagePreference: ObservableObject {
     private static let userDefaultsKey = "app.language"
 
-    var current: AppLanguage {
+    @Published var current: AppLanguage {
         didSet {
             UserDefaults.standard.set(current.rawValue, forKey: Self.userDefaultsKey)
         }

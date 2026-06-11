@@ -16,12 +16,4 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 
     var localeIdentifier: String { rawValue }
-
-    var flagAsset: String {
-        switch self {
-        case .vi: "flag.vn"
-        case .en: "flag.en"
-        case .ja: "flag.ja"
-        }
-    }
 }
