@@ -6,13 +6,12 @@ import SwiftUI
 /// `LoginView`. Keeps all UIKit / async wiring out of `LoginView` itself.
 struct LoginViewContainer: View {
 
-    @Environment(AuthService.self) private var authService
-    @Environment(LanguagePreference.self) private var languagePreference
+    @EnvironmentObject private var authService: AuthService
+    @EnvironmentObject private var languagePreference: LanguagePreference
 
     var body: some View {
-        @Bindable var prefs = languagePreference
         LoginView(
-            selectedLanguage: $prefs.current,
+            selectedLanguage: $languagePreference.current,
             isLoading: authService.isLoading,
             // Catalog key (e.g. "login.error.network"). LoginView wraps in LocalizedStringKey
             // so SwiftUI's \.locale environment drives the displayed language.
@@ -35,18 +34,18 @@ struct LoginViewContainer: View {
 
 #Preview("Default") {
     LoginViewContainer()
-        .environment(AuthService.previewSignedOut())
-        .environment(LanguagePreference())
+        .environmentObject(AuthService.previewSignedOut())
+        .environmentObject(LanguagePreference())
 }
 
 #Preview("Loading") {
     LoginViewContainer()
-        .environment(AuthService.previewLoading())
-        .environment(LanguagePreference())
+        .environmentObject(AuthService.previewLoading())
+        .environmentObject(LanguagePreference())
 }
 
 #Preview("Network Error") {
     LoginViewContainer()
-        .environment(AuthService.previewNetworkError())
-        .environment(LanguagePreference())
+        .environmentObject(AuthService.previewNetworkError())
+        .environmentObject(LanguagePreference())
 }

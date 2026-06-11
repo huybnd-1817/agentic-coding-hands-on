@@ -4,8 +4,8 @@ import GoogleSignIn
 @main
 struct saaApp: App {
 
-    @State private var authService = AuthService()
-    @State private var languagePreference = LanguagePreference()
+    @StateObject private var authService = AuthService()
+    @StateObject private var languagePreference = LanguagePreference()
 
     init() {
         configureGoogleSignIn()
@@ -14,8 +14,8 @@ struct saaApp: App {
     var body: some Scene {
         WindowGroup {
             AppRouter()
-                .environment(authService)
-                .environment(languagePreference)
+                .environmentObject(authService)
+                .environmentObject(languagePreference)
                 .environment(\.locale, Locale(identifier: languagePreference.current.localeIdentifier))
                 .task {
                     await authService.restoreSession()
@@ -45,13 +45,6 @@ struct saaApp: App {
             #endif
             return
         }
-        // hostedDomain pre-filters the Google account chooser to Sun* Workspace users.
-        // Defense-in-depth only — the Postgres trigger enforce_sun_domain is the authoritative check.
-        // API CONFIRM: GIDConfiguration(clientID:serverClientID:hostedDomain:) exists in GoogleSignIn-iOS v7.x.
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(
-            clientID: clientID,
-            serverClientID: nil,
-            hostedDomain: "sun-asterisk.com"
-        )
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
     }
 }

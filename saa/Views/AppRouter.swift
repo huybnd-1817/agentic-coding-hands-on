@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 // MARK: - AppRouter
 
@@ -14,7 +15,7 @@ import SwiftUI
 ///         TC_LOGIN_FUN_012, TC_LOGIN_FUN_013, TC_LOGIN_FUN_014.
 struct AppRouter: View {
 
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject private var authService: AuthService
 
     var body: some View {
         Group {
@@ -36,18 +37,18 @@ struct AppRouter: View {
 
 #Preview("Restoring") {
     AppRouter()
-        .environment(AuthService.previewRestoring())
-        .environment(LanguagePreference())
+        .environmentObject(AuthService.previewRestoring())
+        .environmentObject(LanguagePreference())
 }
 
 #Preview("Signed In") {
     AppRouter()
-        .environment(AuthService.previewSignedIn())
-        .environment(LanguagePreference())
+        .environmentObject(AuthService.previewSignedIn())
+        .environmentObject(LanguagePreference())
 }
 
 #Preview("Signed Out") {
     AppRouter()
-        .environment(AuthService.previewSignedOut())
-        .environment(LanguagePreference())
+        .environmentObject(AuthService.previewSignedOut())
+        .environmentObject(LanguagePreference())
 }

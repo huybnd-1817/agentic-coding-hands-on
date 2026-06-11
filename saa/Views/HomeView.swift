@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 // MARK: - HomeView
 
@@ -8,10 +9,10 @@ import SwiftUI
 /// No styling polish — placeholder layout per Phase 06 spec.
 struct HomeView: View {
 
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject private var authService: AuthService
     /// Honors the `\.locale` injected in `saaApp` so the greeting follows the
     /// in-app language selection (not just the system locale).
-    @Environment(\.locale) private var locale
+    @SwiftUI.Environment(\.locale) private var locale
 
     private var greetingText: String {
         let format = String(localized: "home.greeting", locale: locale)
@@ -45,10 +46,10 @@ struct HomeView: View {
 
 #Preview("Signed In") {
     HomeView()
-        .environment(AuthService.previewSignedIn())
+        .environmentObject(AuthService.previewSignedIn())
 }
 
 #Preview("Default") {
     HomeView()
-        .environment(AuthService())
+        .environmentObject(AuthService())
 }
