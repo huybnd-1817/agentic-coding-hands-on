@@ -1,5 +1,5 @@
+import Combine
 import Foundation
-import Observation
 import GoogleSignIn
 import Supabase
 
@@ -11,26 +11,25 @@ import Supabase
 ///
 /// Consumers observe `session`, `isLoading`, `error`, and `isRestoringSession`
 /// to drive routing and UI state. All mutations happen on the MainActor.
-@Observable
 @MainActor
-final class AuthService {
+final class AuthService: ObservableObject {
 
     // MARK: - Observed state
 
     /// Non-nil when a valid Supabase session exists.
-    private(set) var session: Session?
+    @Published private(set) var session: Session?
 
     /// `true` while a sign-in request is in flight. Used to disable the button
     /// and prevent double-taps (TC_LOGIN_FUN_008).
-    private(set) var isLoading: Bool = false
+    @Published private(set) var isLoading: Bool = false
 
     /// Most recent auth error; `nil` after a successful operation or on cancellation.
-    private(set) var error: AuthError?
+    @Published private(set) var error: AuthError?
 
     /// `true` from init until the initial Keychain check completes at app launch
     /// (TC_LOGIN_ACC_002 / TC_LOGIN_FUN_012 / TC_LOGIN_FUN_013). Drives the
     /// splash/loading gate in the root view.
-    private(set) var isRestoringSession: Bool = true
+    @Published private(set) var isRestoringSession: Bool = true
 
     // MARK: - Private
 
@@ -38,8 +37,11 @@ final class AuthService {
 
     // MARK: - Init
 
-    init(client: SupabaseClient = SupabaseClientProvider.shared) {
-        self.client = client
+    init(client: SupabaseClient? = nil) {
+        // Resolve the default inside the init body so the access to the
+        // shared client happens in this MainActor-isolated context, not at
+        // the (potentially nonisolated) call site.
+        self.client = client ?? SupabaseClientProvider.shared
     }
 
     // MARK: - Session restore
@@ -85,17 +87,8 @@ final class AuthService {
             let rawNonce = Nonce.random()
             let hashedNonce = Nonce.sha256(rawNonce)
 
-            // 2. Present Google account chooser.
-            //
-            // `hostedDomain` restricts the chooser UI to @sun-asterisk.com accounts
-            // (defense-in-depth). The Postgres trigger in Phase 03 is the authoritative
-            // domain check — this is UX-only and can be bypassed by a tampered build.
-            //
-            // API CONFIRM: `signIn(withPresenting:hint:additionalScopes:nonce:)` is the
-            // v7.x async signature. The `hostedDomain` parameter was removed from this
-            // call site in GoogleSignIn-iOS v7+ in favour of the Google Cloud Console
-            // "Internal" OAuth consent screen setting. If the resolved SDK exposes a
-            // `hostedDomain` property on `GIDConfiguration` or `GIDSignIn`, set it there.
+            // 2. Present Google account chooser. No domain pre-filter — any Google
+            //    account is accepted.
             let result = try await GIDSignIn.sharedInstance.signIn(
                 withPresenting: viewController,
                 hint: nil,
@@ -153,3 +146,22 @@ final class AuthService {
         self.error = nil
     }
 }
+
+#if DEBUG
+extension AuthService {
+    /// Directly sets observable properties for SwiftUI Previews and unit tests.
+    /// DEBUG-only — defined in the same file as `AuthService` so it can write
+    /// the `private(set)` properties without widening their production setter.
+    func injectState(
+        session: Session? = nil,
+        isLoading: Bool = false,
+        isRestoringSession: Bool = false,
+        error: AuthError? = nil
+    ) {
+        self.session = session
+        self.isLoading = isLoading
+        self.isRestoringSession = isRestoringSession
+        self.error = error
+    }
+}
+#endif

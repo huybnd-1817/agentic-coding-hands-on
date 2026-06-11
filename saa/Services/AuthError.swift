@@ -19,8 +19,8 @@ enum AuthError: LocalizedError {
     /// No network path or a timeout occurred.
     case networkUnavailable
 
-    /// Account rejected by the domain allow-list, or account is deleted/locked.
-    /// Covers Postgres trigger rejection (code 42501) and Supabase 401/403.
+    /// Account is not allowed to sign in (deleted, locked, or otherwise rejected
+    /// by Supabase / a Postgres policy). Covers Supabase 401/403/422.
     case notAuthorized
 
     /// An unexpected error that does not map to any specific category.
@@ -82,14 +82,21 @@ extension AuthError {
         }
 
         // Supabase AuthError: HTTP 401 / 403 / 422.
-        // 422 covers the Postgres-trigger rejection path: when enforce_sun_domain raises an
-        // exception, GoTrue surfaces it as HTTP 422 Unprocessable Entity on signInWithIdToken.
-        // API CONFIRM: supabase-swift v2.x — `AuthError.status` is `Int?` (optional). Verify
-        // the exact type name and property path against the linked package version.
+        // 422 covers any Postgres-trigger or policy rejection: when a server-side check
+        // raises an exception, GoTrue surfaces it as HTTP 422 Unprocessable Entity.
+        // In supabase-swift v2.x, AuthError is an enum; HTTP status is on the .api case's response.
         if let supabaseAuthError = error as? Supabase.AuthError,
-           let status = supabaseAuthError.status,
-           [401, 403, 422].contains(status) {
-            return .notAuthorized
+           case let .api(message, _, _, response) = supabaseAuthError {
+            #if DEBUG
+            // Surface server-side cause to Xcode console — otherwise these get
+            // flattened into a generic "unknown" message in the UI and devs
+            // have no clue why sign-in failed (e.g. "Bad ID token" from an
+            // audience mismatch when GOOGLE_CLIENT_ID is misconfigured).
+            print("[AuthService] Supabase \(response.statusCode): \(message)")
+            #endif
+            if [401, 403, 422].contains(response.statusCode) {
+                return .notAuthorized
+            }
         }
 
         // PostgrestError: RLS / trigger violation.
@@ -103,6 +110,9 @@ extension AuthError {
             }
         }
 
+        #if DEBUG
+        print("[AuthService] Unhandled sign-in error → \(error)")
+        #endif
         return .unknown(underlying: error)
     }
 }

@@ -10,11 +10,11 @@ import Supabase
 /// ```swift
 /// #Preview {
 ///     HomeView()
-///         .environment(MockAuthService.signedIn())
+///         .environmentObject(AuthService.previewSignedIn())
 /// }
 /// ```
 ///
-/// Because `AuthService` is a concrete `@Observable` class (not a protocol),
+/// Because `AuthService` is a concrete `ObservableObject` (not a protocol),
 /// mocks are produced via a factory that returns a fully-initialised instance
 /// with its state pre-set before the caller observes it.
 extension AuthService {
@@ -43,7 +43,7 @@ extension AuthService {
         return service
     }
 
-    /// Returns an `AuthService` with a domain-rejection error set.
+    /// Returns an `AuthService` with a not-authorized error set.
     static func previewNotAuthorized() -> AuthService {
         let service = AuthService(client: .preview)
         service.injectState(session: nil, isRestoringSession: false, error: .notAuthorized)
@@ -64,21 +64,8 @@ extension AuthService {
         return service
     }
 
-    // MARK: Internal state injection
-
-    /// Directly sets observable properties for preview/test purposes.
-    /// Internal visibility keeps this out of the production API surface.
-    func injectState(
-        session: Session? = nil,
-        isLoading: Bool = false,
-        isRestoringSession: Bool = false,
-        error: AuthError? = nil
-    ) {
-        self.session = session
-        self.isLoading = isLoading
-        self.isRestoringSession = isRestoringSession
-        self.error = error
-    }
+    // `injectState` is defined in AuthService.swift (same-file extension is
+    // required to write the `private(set)` properties).
 }
 
 // MARK: - SupabaseClient preview stub
