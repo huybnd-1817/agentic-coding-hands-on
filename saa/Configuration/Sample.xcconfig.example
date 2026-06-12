@@ -1,0 +1,11 @@
+// Sample xcconfig — copy this file to Debug.xcconfig and Release.xcconfig,
+// then fill in your real values. DO NOT commit Debug.xcconfig or Release.xcconfig.
+//
+// xcconfig note: double-slash (//) starts a comment, so URLs use $() to escape:
+//   http://$()/127.0.0.1:54321  →  resolves to  http://127.0.0.1:54321
+
+// Supabase project URL (local: http://$()/127.0.0.1:54321, remote: https://$()/your-ref.supabase.co)
+SUPABASE_URL = http:/$()/127.0.0.1:54321
+
+// Supabase anon (public) key — safe to embed in the binary; protected by RLS
+SUPABASE_ANON_KEY = REPLACE_WITH_YOUR_ANON_KEY

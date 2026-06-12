@@ -128,3 +128,8 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# iOS local config — contain secrets, never commit
+saa/Configuration/Debug.xcconfig
+saa/Configuration/Release.xcconfig
+saa/GoogleService-Info.plist
