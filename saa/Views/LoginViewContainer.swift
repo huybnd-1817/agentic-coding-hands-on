@@ -32,6 +32,7 @@ struct LoginViewContainer: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Default") {
     LoginViewContainer()
         .environmentObject(AuthService.previewSignedOut())
@@ -49,3 +50,4 @@ struct LoginViewContainer: View {
         .environmentObject(AuthService.previewNetworkError())
         .environmentObject(LanguagePreference())
 }
+#endif

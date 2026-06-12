@@ -4,7 +4,10 @@ import GoogleSignIn
 @main
 struct saaApp: App {
 
-    @StateObject private var authService = AuthService()
+    // UI test seam: makeAuthService() returns a preview stub when -uiTestMode is
+    // present in DEBUG builds. In Release builds the #if DEBUG block is stripped
+    // entirely, so production binaries never honour -uiTestMode.
+    @StateObject private var authService: AuthService = saaApp.makeAuthService()
     @StateObject private var languagePreference = LanguagePreference()
 
     init() {
@@ -18,6 +21,9 @@ struct saaApp: App {
                 .environmentObject(languagePreference)
                 .environment(\.locale, Locale(identifier: languagePreference.current.localeIdentifier))
                 .task {
+                    #if DEBUG
+                    if saaApp.uiTestScenario() != nil { return }
+                    #endif
                     await authService.restoreSession()
                 }
                 .onOpenURL { url in
@@ -27,6 +33,36 @@ struct saaApp: App {
     }
 
     // MARK: - Private
+
+    /// Returns a live `AuthService`, or a DEBUG-only preview stub when the
+    /// `-uiTestMode <scenario>` launch argument is present. Never executed in
+    /// Release builds — the entire factory body collapses to `return AuthService()`.
+    private static func makeAuthService() -> AuthService {
+        #if DEBUG
+        if let scenario = uiTestScenario() {
+            switch scenario {
+            case "signedIn":      return AuthService.previewSignedIn()
+            case "signedOut":     return AuthService.previewSignedOut()
+            case "restoring":     return AuthService.previewRestoring()
+            case "loading":       return AuthService.previewLoading()
+            case "networkError":  return AuthService.previewNetworkError()
+            case "notAuthorized": return AuthService.previewNotAuthorized()
+            default: break
+            }
+        }
+        #endif
+        return AuthService()
+    }
+
+    #if DEBUG
+    /// Reads the scenario name that follows `-uiTestMode` in `CommandLine.arguments`.
+    /// Returns `nil` when the flag is absent (i.e., in normal app launches).
+    private static func uiTestScenario() -> String? {
+        let args = CommandLine.arguments
+        guard let idx = args.firstIndex(of: "-uiTestMode"), idx + 1 < args.count else { return nil }
+        return args[idx + 1]
+    }
+    #endif
 
     /// Reads CLIENT_ID from GoogleService-Info.plist and configures the GIDSignIn
     /// shared instance. Safe to call before the view tree is built.

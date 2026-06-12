@@ -44,6 +44,7 @@ struct HomeView: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Signed In") {
     HomeView()
         .environmentObject(AuthService.previewSignedIn())
@@ -53,3 +54,4 @@ struct HomeView: View {
     HomeView()
         .environmentObject(AuthService())
 }
+#endif

@@ -9,9 +9,5 @@ import Testing
 @testable import saa
 
 struct saaTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-    }
-
+    // Phase 02 fills in
 }

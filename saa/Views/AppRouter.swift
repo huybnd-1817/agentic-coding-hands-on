@@ -35,6 +35,7 @@ struct AppRouter: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Restoring") {
     AppRouter()
         .environmentObject(AuthService.previewRestoring())
@@ -52,3 +53,4 @@ struct AppRouter: View {
         .environmentObject(AuthService.previewSignedOut())
         .environmentObject(LanguagePreference())
 }
+#endif
