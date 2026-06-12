@@ -47,7 +47,10 @@ struct saaApp: App {
             case "loading":       return AuthService.previewLoading()
             case "networkError":  return AuthService.previewNetworkError()
             case "notAuthorized": return AuthService.previewNotAuthorized()
-            default: break
+            default:
+                // Catch Phase 04 typos at the seam instead of falling through to
+                // a live AuthService that would attempt real auth during a UI test.
+                assertionFailure("Unknown uiTestMode scenario: \(scenario)")
             }
         }
         #endif
