@@ -81,6 +81,9 @@ xcuserdata/
 *.dSYM.zip
 *.dSYM
 
+## Test results / coverage bundles — never commit
+*.xcresult
+
 ## Playgrounds
 timeline.xctimeline
 playground.xcworkspace
