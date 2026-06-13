@@ -1,12 +1,26 @@
 import SwiftUI
 import Supabase
 
+// MARK: - AppRoute
+
+/// The three branches `AppRouter.body` can take. Lifted out of the body so
+/// unit tests can assert the route deterministically without depending on
+/// SwiftUI's accessibility commit (which does not run synchronously in a
+/// unit-test host process). Both `body` below and `AppRouterRoutingTests`
+/// consume `AppRouter.activeRoute(for:)` — a change to the routing logic
+/// must touch this function, which is what the tests assert against.
+enum AppRoute: Equatable {
+    case spinner
+    case home
+    case login
+}
+
 // MARK: - AppRouter
 
 /// Root router — switches between the launch spinner, Home, and Login based on
 /// `AuthService` state.
 ///
-/// Gate order:
+/// Gate order (encoded once in `activeRoute(for:)`):
 ///   1. `isRestoringSession` → spinner (prevents Login flash on relaunch with valid token)
 ///   2. `session != nil`     → HomeView
 ///   3. else                 → LoginViewContainer
@@ -17,15 +31,28 @@ struct AppRouter: View {
 
     @EnvironmentObject private var authService: AuthService
 
+    /// Pure mapping from `AuthService` state → which branch `body` will mount.
+    /// Single source of truth for routing — tests assert against this same
+    /// expression rather than reimplementing the guard order.
+    static func activeRoute(for service: AuthService) -> AppRoute {
+        if service.isRestoringSession { return .spinner }
+        if service.session != nil { return .home }
+        return .login
+    }
+
     var body: some View {
         Group {
-            if authService.isRestoringSession {
+            switch Self.activeRoute(for: authService) {
+            case .spinner:
                 ProgressView()
                     .progressViewStyle(.circular)
-            } else if authService.session != nil {
+                    .accessibilityIdentifier("router.spinner")
+            case .home:
                 HomeView()
-            } else {
+                    .accessibilityIdentifier("router.home")
+            case .login:
                 LoginViewContainer()
+                    .accessibilityIdentifier("router.login")
             }
         }
         .animation(.easeInOut(duration: 0.25), value: authService.session?.user.id)
@@ -35,6 +62,7 @@ struct AppRouter: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Restoring") {
     AppRouter()
         .environmentObject(AuthService.previewRestoring())
@@ -52,3 +80,4 @@ struct AppRouter: View {
         .environmentObject(AuthService.previewSignedOut())
         .environmentObject(LanguagePreference())
 }
+#endif

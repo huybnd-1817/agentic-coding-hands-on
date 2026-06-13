@@ -1,0 +1,102 @@
+name: iOS Tests
+
+# Run on pull requests only. Push events to long-lived branches are not gated
+# by this workflow — the PR is the integration boundary.
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+
+    # Opt the whole job (including transitive actions) into Node.js 24 ahead
+    # of GitHub's default flip on 2026-06-16. Covers `actions/github-script`
+    # pulled in transitively by `codecov/codecov-action@v5`, which we cannot
+    # bump directly. Remove this env once the default flips and is stable.
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pin Xcode to a major version so a runner image update cannot silently
+      # change the toolchain. `setup-xcode` resolves the latest 16.x available
+      # on the runner — explicit, robust, and fails fast if not found.
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16'
+
+      - name: Show Xcode + simulator inventory
+        run: |
+          xcodebuild -version
+          echo "--- available iOS simulators ---"
+          xcrun simctl list devices iOS available
+
+      # Debug.xcconfig, Release.xcconfig, and GoogleService-Info.plist are
+      # gitignored locally (they hold real secrets for developer machines).
+      # On CI the tests use mocks — no real Supabase or Google traffic — so
+      # the sanitized .example templates are sufficient to make xcodebuild
+      # resolve `baseConfigurationReference` and the Google plist target ref.
+      - name: Prepare CI config (stubs for gitignored secrets)
+        run: |
+          cp saa/Configuration/Sample.xcconfig.example saa/Configuration/Debug.xcconfig
+          cp saa/Configuration/Sample.xcconfig.example saa/Configuration/Release.xcconfig
+          cp saa/GoogleService-Info.plist.example      saa/GoogleService-Info.plist
+
+      # Pick whichever iPhone simulator the runner actually has, instead of
+      # hard-coding a name that may not match the installed runtime.
+      - name: Resolve iPhone simulator name
+        id: sim
+        run: |
+          name=$(xcrun simctl list devices iOS available \
+                 | grep -oE 'iPhone [0-9][^(]*' \
+                 | head -1 \
+                 | sed 's/[[:space:]]*$//')
+          if [ -z "$name" ]; then
+            echo "::error::No iOS iPhone simulator available on this runner."
+            exit 1
+          fi
+          echo "Using simulator: $name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      # xcresultparser converts the .xcresult bundle into Cobertura XML,
+      # the format codecov-action ingests for Swift projects.
+      - name: Install xcresultparser
+        run: brew install a7ex/homebrew-formulae/xcresultparser
+
+      - name: Run tests with coverage
+        run: |
+          xcodebuild test \
+            -scheme saa \
+            -destination "platform=iOS Simulator,OS=latest,name=${{ steps.sim.outputs.name }}" \
+            -enableCodeCoverage YES \
+            -resultBundlePath ./saa-tests.xcresult
+
+      # Only summarize coverage if tests actually produced a bundle with
+      # coverage data — otherwise the step exits non-zero and masks the
+      # real failure from the test step above.
+      - name: Coverage summary
+        if: success()
+        run: xcrun xccov view --report ./saa-tests.xcresult
+
+      - name: Export coverage to Cobertura
+        if: success()
+        run: xcresultparser -o cobertura saa-tests.xcresult > coverage.xml
+
+      - name: Upload coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload xcresult on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: saa-tests-xcresult
+          path: ./saa-tests.xcresult
+          retention-days: 7

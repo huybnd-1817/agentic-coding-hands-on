@@ -77,6 +77,15 @@ final class AuthService: ObservableObject {
     /// Guard against concurrent taps: returns immediately if `isLoading` is
     /// already `true` (TC_LOGIN_FUN_008).
     func signInWithGoogle(presenting viewController: UIViewController) async {
+        #if DEBUG
+        // UI-test seam parity with saaApp.uiTestScenario():
+        // when running under -uiTestMode the AuthService is already pre-populated
+        // via injectState; invoking the real GIDSignIn would attempt a live Google
+        // sheet in the simulator, which is non-deterministic and blocked by the
+        // network-disabled smoke run. Early-return keeps the button tappable for
+        // the testGoogleButtonTapDoesNotCrash assertion without calling any SDK.
+        if CommandLine.arguments.contains("-uiTestMode") { return }
+        #endif
         guard !isLoading else { return }
         isLoading = true
         error = nil

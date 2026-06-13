@@ -49,6 +49,10 @@ struct LoginView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(backgroundLayer)
         .preferredColorScheme(.dark)
+        // Establish an accessibility boundary so that child identifiers
+        // (login.googleButton, login.errorBanner, etc.) are not shadowed by
+        // the router.login identifier applied by AppRouter's parent view.
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Backdrop
@@ -94,6 +98,7 @@ struct LoginView: View {
                 selectedLanguage: $selectedLanguage,
                 onLanguageChange: onLanguageChange
             )
+            .accessibilityIdentifier("login.languagePicker")
             .padding(.top, 4)
         }
     }
@@ -167,6 +172,7 @@ struct LoginView: View {
         .disabled(isLoading)
         .opacity(isLoading ? 0.7 : 1.0)
         .animation(.easeInOut(duration: 0.15), value: isLoading)
+        .accessibilityIdentifier("login.googleButton")
     }
 
     private func errorBanner(message: String) -> some View {
@@ -188,6 +194,7 @@ struct LoginView: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.errorBorder, lineWidth: 1)
         )
+        .accessibilityIdentifier("login.errorBanner")
     }
 }
 

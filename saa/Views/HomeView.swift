@@ -20,6 +20,10 @@ struct HomeView: View {
     }
 
     var body: some View {
+        // `.accessibilityElement(children: .contain)` acts as the accessibility
+        // boundary, preventing the outer `router.home` identifier set by
+        // `AppRouter` from propagating onto children and shadowing
+        // `home.logoutButton`. The boundary owns `home.root`.
         VStack(spacing: 24) {
             Spacer()
 
@@ -35,15 +39,19 @@ struct HomeView: View {
                     await authService.signOut()
                 }
             }
+            .accessibilityIdentifier("home.logoutButton")
             .buttonStyle(.borderedProminent)
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home.root")
     }
 }
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Signed In") {
     HomeView()
         .environmentObject(AuthService.previewSignedIn())
@@ -53,3 +61,4 @@ struct HomeView: View {
     HomeView()
         .environmentObject(AuthService())
 }
+#endif

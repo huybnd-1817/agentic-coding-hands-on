@@ -1,0 +1,38 @@
+# Codecov configuration — controls how the PR comment renders and which
+# files count toward the coverage total. See https://docs.codecov.com/docs/codecovyml-reference
+#
+# Active baseline (recorded in docs/ci-coverage.md, 2026-06-13):
+#   App target overall = 75.13% (840 / 1118 lines). The `project` gate below
+#   tracks that with a 1% drift tolerance.
+
+coverage:
+  status:
+    # Whole-repo gate. Fails the Codecov check if total drops below 75% or
+    # erodes by more than 1% versus the base branch.
+    project:
+      default:
+        target: 75%
+        threshold: 1%
+    # New-code gate. PR patch must be at least 80% covered. Matches the
+    # per-file thresholds the login plan applies to new view containers.
+    patch:
+      default:
+        target: 80%
+
+# PR comment layout — keep it focused. `reach` shows project coverage,
+# `diff` shows the patch delta, `files` lists changed files with deltas.
+comment:
+  layout: "reach, diff, files"
+  behavior: default
+  require_changes: false
+
+# Paths excluded from coverage totals. Tests and the Xcode project bundle
+# are not product code. SPM checkouts under DerivedData are dependencies
+# and must never count against us — xcresultparser can include them if
+# the user's local toolchain dumps absolute paths.
+ignore:
+  - "saaTests/"
+  - "saaUITests/"
+  - "saa.xcodeproj/"
+  - "**/SourcePackages/**"
+  - "**/DerivedData/**"
