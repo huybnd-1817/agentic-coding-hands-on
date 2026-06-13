@@ -9,6 +9,13 @@ jobs:
   test:
     runs-on: macos-15
 
+    # Opt the whole job (including transitive actions) into Node.js 24 ahead
+    # of GitHub's default flip on 2026-06-16. Covers `actions/github-script`
+    # pulled in transitively by `codecov/codecov-action@v5`, which we cannot
+    # bump directly. Remove this env once the default flips and is stable.
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
     steps:
       - uses: actions/checkout@v5
 
