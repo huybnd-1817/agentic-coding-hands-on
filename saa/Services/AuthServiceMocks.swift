@@ -92,27 +92,42 @@ private extension Session {
     // use `try! JSONDecoder().decode(Session.self, from: previewSessionJSON)` as
     // a fallback (include a minimal JSON fixture below).
     static let preview: Session = {
+        // Session.Codable uses synthesised coding keys matching Swift property names
+        // (camelCase). The Supabase Auth SDK's live decoder applies convertFromSnakeCase
+        // over the network, but when constructing a value directly in code we must use
+        // camelCase keys and the same custom date strategy the SDK uses internally.
+        // Dates use ISO-8601 without fractional seconds (supabase() DateFormatter).
         let json = """
         {
-          "access_token": "preview.access.token",
-          "token_type": "bearer",
-          "expires_in": 3600,
-          "expires_at": 9999999999,
-          "refresh_token": "preview-refresh-token",
+          "accessToken": "preview.access.token",
+          "tokenType": "bearer",
+          "expiresIn": 3600,
+          "expiresAt": 9999999999,
+          "refreshToken": "preview-refresh-token",
+          "isAnonymous": false,
           "user": {
             "id": "00000000-0000-0000-0000-000000000001",
             "aud": "authenticated",
             "role": "authenticated",
             "email": "preview@sun-asterisk.com",
-            "created_at": "2026-01-01T00:00:00Z",
-            "updated_at": "2026-01-01T00:00:00Z",
-            "app_metadata": {},
-            "user_metadata": {}
+            "createdAt": "2026-01-01T00:00:00",
+            "updatedAt": "2026-01-01T00:00:00",
+            "appMetadata": {},
+            "userMetadata": {},
+            "isAnonymous": false
           }
         }
         """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        // Supabase uses a custom date strategy matching "yyyy-MM-dd'T'HH:mm:ss" or
+        // "yyyy-MM-dd'T'HH:mm:ss.SSS". Mirror that with the iso8601 format.
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        decoder.dateDecodingStrategy = .formatted(formatter)
         // swiftlint:disable:next force_try
-        return try! JSONDecoder().decode(Session.self, from: json)
+        return try! decoder.decode(Session.self, from: json)
     }()
 }
 #endif
