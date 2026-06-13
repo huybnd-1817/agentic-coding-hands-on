@@ -63,7 +63,10 @@ jobs:
       # xcresultparser converts the .xcresult bundle into Cobertura XML,
       # the format codecov-action ingests for Swift projects.
       - name: Install xcresultparser
-        run: brew install a7ex/homebrew-formulae/xcresultparser
+        run: |
+          brew tap a7ex/formulae
+          brew trust --formula a7ex/formulae/xcresultparser || true
+          brew install a7ex/formulae/xcresultparser
 
       - name: Run tests with coverage
         run: |
