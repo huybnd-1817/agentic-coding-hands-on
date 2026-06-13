@@ -128,10 +128,32 @@ state with no platform-version-specific APIs.
 ## CI workflow
 
 File: `.github/workflows/ios-tests.yml`  
-Triggers: push to `main` or `feature_login`, and all pull requests.
+Triggers: pull requests only — the PR is the integration boundary.
 
-The first green CI run can only be confirmed after this branch is pushed and the workflow
-executes on GitHub. Watch the Actions tab after pushing `feature_login`.
+CI steps in order:
+1. `actions/checkout@v5`, `maxim-lobanov/setup-xcode@v1` (Xcode 16)
+2. Diagnostic print of available iOS simulators
+3. **Prepare CI config** — copies sanitized `.example` templates into
+   `saa/Configuration/Debug.xcconfig`, `saa/Configuration/Release.xcconfig`,
+   and `saa/GoogleService-Info.plist`. These are gitignored locally because
+   developer machines hold real secrets; on CI the tests run against mocks,
+   so the example stubs are sufficient to satisfy `baseConfigurationReference`
+   and the bundled Google plist.
+4. **Resolve iPhone simulator name** dynamically via `xcrun simctl list devices iOS available`
+   — picks the first available `iPhone N…` so a runner-image change cannot
+   produce another `Unable to find a device` failure.
+5. `brew install xcresultparser` (a7ex tap) for Cobertura conversion.
+6. `xcodebuild test … -enableCodeCoverage YES`.
+7. `xcrun xccov view --report` summary (gated on `if: success()`).
+8. `xcresultparser -o cobertura → coverage.xml` (gated on `if: success()`).
+9. `codecov/codecov-action@v5` upload (gated on `if: success()`, `CODECOV_TOKEN`
+   read from repo secrets, `fail_ci_if_error: false` so a Codecov outage
+   does not red-flag a healthy build).
+10. `actions/upload-artifact@v5` of the `.xcresult` bundle on test failure
+    (retention 7 days) for postmortem.
+
+The first green CI run can only be confirmed after this branch is pushed and a
+PR is opened. Watch the Actions tab after opening the PR.
 
 ---
 
