@@ -219,6 +219,8 @@ Only when configuring the remote Supabase project (Part 3):
 - [ ] `supabase start` running
 - [ ] `git status` shows no `.xcconfig`, `.env`, or `.plist` secret files staged
 
+> To run the unit test suite and generate a coverage report locally or via CI, see [docs/ci-coverage.md](ci-coverage.md).
+
 **Release / production (only when shipping):**
 
 - [ ] Remote Supabase project created (Part 3)
