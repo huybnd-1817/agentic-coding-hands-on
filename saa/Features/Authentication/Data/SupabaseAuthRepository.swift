@@ -6,9 +6,9 @@ import Supabase
 /// Data-layer implementation of `AuthRepositoryProtocol` backed by the Supabase SDK.
 ///
 /// All SDK auth calls (`client.auth.*`) are confined to this file, satisfying Gate #4.
-/// Construction mirrors `AuthService.init(client:)`: the default is resolved inside
-/// the initialiser body, not at the call site, to avoid capturing `SupabaseClientProvider.shared`
-/// before it has been fully initialised.
+/// The default `SupabaseClient` is resolved inside the initialiser body rather than at
+/// the call site, so `SupabaseClientProvider.shared` is touched only after the type-level
+/// `static let` is safe to read.
 struct SupabaseAuthRepository: AuthRepositoryProtocol {
 
     // MARK: - Properties
@@ -29,7 +29,7 @@ extension SupabaseAuthRepository {
     /// Reads the persisted JWT from Keychain via the Supabase SDK.
     ///
     /// Returns `nil` — rather than throwing — when no valid session exists (expired
-    /// or absent token), mirroring `AuthService.restoreSession()` behaviour.
+    /// or absent token), so callers route the user to Login without surfacing an error.
     func restoreSession() async throws -> UserSession? {
         do {
             let session = try await client.auth.session

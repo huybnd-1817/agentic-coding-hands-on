@@ -6,9 +6,8 @@ import Combine
 /// Observable session store that owns `UserSession` and restore-state as the
 /// single source of truth for auth state across the Presentation layer.
 ///
-/// Replaces the monolithic `AuthService` for state ownership. Use-case objects
-/// mutate this store after successful or failed auth operations. The router and
-/// all screens observe published properties through `@EnvironmentObject`.
+/// Use-case objects mutate this store after successful or failed auth operations.
+/// The router and all screens observe published properties through `@EnvironmentObject`.
 @MainActor
 final class AuthSessionStore: ObservableObject {
 

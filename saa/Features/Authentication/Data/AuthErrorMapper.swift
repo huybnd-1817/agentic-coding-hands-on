@@ -50,7 +50,7 @@ enum AuthErrorMapper {
             // flattened into a generic "unknown" message in the UI and devs
             // have no clue why sign-in failed (e.g. "Bad ID token" from an
             // audience mismatch when GOOGLE_CLIENT_ID is misconfigured).
-            print("[AuthService] Supabase \(response.statusCode): \(message)")
+            print("[Auth] Supabase \(response.statusCode): \(message)")
             #endif
             if [401, 403, 422].contains(response.statusCode) {
                 return .notAuthorized
@@ -69,7 +69,7 @@ enum AuthErrorMapper {
         }
 
         #if DEBUG
-        print("[AuthService] Unhandled sign-in error → \(error)")
+        print("[Auth] Unhandled sign-in error → \(error)")
         #endif
         return .unknown(underlying: error)
     }
