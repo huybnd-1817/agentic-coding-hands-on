@@ -1,56 +1,53 @@
 import XCTest
-import Supabase
 @testable import saa
 
 // MARK: - LoginViewContainerPropsTests
 //
-// Tests `LoginViewContainer.makeProps(authService:)` — the pure, static prop-derivation
-// helper extracted during the Phase 03 refactor of LoginViewContainer.
+// Tests `LoginViewContainer.makeProps(viewModel:)` — the pure, static prop-derivation
+// helper that maps `LoginViewModel` state → `LoginViewContainer.Props`.
 //
 // No UIKit hosting is required: the helper is a pure Swift function that maps
-// AuthService state → LoginViewProps without touching the SwiftUI view hierarchy.
+// view model state → Props without touching the SwiftUI view hierarchy.
 //
-// All tests run on @MainActor because AuthService is @MainActor-isolated and
+// All tests run on @MainActor because LoginViewModel is @MainActor-isolated and
 // injectState() must be called on the actor it isolates.
 //
-// Implementation note: all services are created via `AuthService(client: StubSupabase.makeUnreachable())`
-// rather than the `preview*` factory methods. The preview factories use a client that points to
-// localhost:54321, which causes the Supabase SDK to subscribe to auth-state changes and kick off
-// background async work. When that service is deallocated at the end of the test, Swift's MainActor
-// dealloc trampoline can race with in-flight tasks, producing SIGABRT from libmalloc. Using the
-// unreachable stub avoids all network I/O and keeps teardown deterministic.
+// Fakes: minimal private AuthRepositoryProtocol / GoogleSignInServiceProtocol
+// conformances are defined at the bottom of this file. They are intentionally
+// bare-minimum — Phase 05 will replace them with proper test doubles.
 
 @MainActor
 final class LoginViewContainerPropsTests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Creates a fresh AuthService backed by a stub that never makes real network calls,
-    /// then injects the supplied state synchronously before returning.
-    private func makeService(
-        session: Supabase.Session? = nil,
+    /// Creates a `LoginViewModel` backed by no-op fakes, then injects the supplied
+    /// state synchronously before returning.
+    private func makeViewModel(
         isLoading: Bool = false,
-        isRestoringSession: Bool = false,
-        error: saa.AuthError? = nil
-    ) -> AuthService {
-        let service = AuthService(client: StubSupabase.makeUnreachable())
-        service.injectState(
-            session: session,
-            isLoading: isLoading,
-            isRestoringSession: isRestoringSession,
-            error: error
+        errorMessage: String? = nil
+    ) -> LoginViewModel {
+        let store = AuthSessionStore()
+        let vm = LoginViewModel(
+            signInUseCase: SignInWithGoogleUseCase(
+                repository: PropsTestStubRepository(),
+                googleService: PropsTestStubGoogleService(),
+                nonceGenerator: Nonce.default
+            ),
+            store: store
         )
-        return service
+        vm.injectState(isLoading: isLoading, errorMessage: errorMessage)
+        return vm
     }
 
     // MARK: - Loading state
 
-    /// When the service is loading (sign-in in flight), props must reflect isLoading == true.
+    /// When the view model is loading (sign-in in flight), props must reflect isLoading == true.
     func testPropsReflectLoading() async {
-        let service = makeService(isLoading: true)
-        let props = LoginViewContainer.makeProps(authService: service)
+        let vm = makeViewModel(isLoading: true)
+        let props = LoginViewContainer.makeProps(viewModel: vm)
 
-        XCTAssertTrue(props.isLoading, "isLoading must be true when authService.isLoading == true")
+        XCTAssertTrue(props.isLoading, "isLoading must be true when viewModel.isLoading == true")
         XCTAssertNil(props.errorMessage, "errorMessage must be nil when no error is set")
     }
 
@@ -58,8 +55,8 @@ final class LoginViewContainerPropsTests: XCTestCase {
 
     /// `.networkUnavailable` must surface the catalog key "login.error.network".
     func testPropsReflectErrorMessageKey() async {
-        let service = makeService(error: .networkUnavailable)
-        let props = LoginViewContainer.makeProps(authService: service)
+        let vm = makeViewModel(errorMessage: AuthError.networkUnavailable.messageKey)
+        let props = LoginViewContainer.makeProps(viewModel: vm)
 
         XCTAssertFalse(props.isLoading, "isLoading should be false when only error is set")
         XCTAssertEqual(
@@ -69,10 +66,10 @@ final class LoginViewContainerPropsTests: XCTestCase {
         )
     }
 
-    /// `.userCancelled` must produce nil errorMessage — UI stays silent per clarifications.md.
+    /// `.userCancelled` maps to nil messageKey — UI stays silent per clarifications.md.
     func testUserCancelledErrorYieldsNilMessage() async {
-        let service = makeService(error: .userCancelled)
-        let props = LoginViewContainer.makeProps(authService: service)
+        let vm = makeViewModel(errorMessage: AuthError.userCancelled.messageKey)
+        let props = LoginViewContainer.makeProps(viewModel: vm)
 
         XCTAssertNil(
             props.errorMessage,
@@ -82,8 +79,8 @@ final class LoginViewContainerPropsTests: XCTestCase {
 
     /// `.notAuthorized` must surface the catalog key "login.error.notAuthorized".
     func testNotAuthorizedYieldsCorrectKey() async {
-        let service = makeService(error: .notAuthorized)
-        let props = LoginViewContainer.makeProps(authService: service)
+        let vm = makeViewModel(errorMessage: AuthError.notAuthorized.messageKey)
+        let props = LoginViewContainer.makeProps(viewModel: vm)
 
         XCTAssertEqual(
             props.errorMessage,
@@ -94,8 +91,10 @@ final class LoginViewContainerPropsTests: XCTestCase {
 
     /// `.unknown` must surface the catalog key "login.error.unknown".
     func testUnknownYieldsCorrectKey() async {
-        let service = makeService(error: .unknown(underlying: NSError(domain: "test", code: 0)))
-        let props = LoginViewContainer.makeProps(authService: service)
+        let vm = makeViewModel(
+            errorMessage: AuthError.unknown(underlying: NSError(domain: "test", code: 0)).messageKey
+        )
+        let props = LoginViewContainer.makeProps(viewModel: vm)
 
         XCTAssertEqual(
             props.errorMessage,
@@ -104,14 +103,32 @@ final class LoginViewContainerPropsTests: XCTestCase {
         )
     }
 
-    // MARK: - Idle state
-
     /// Idle state (signed out, no error, not loading) yields both props at their zero values.
     func testIdleStateYieldsNoLoadingNoError() async {
-        let service = makeService()  // all defaults: no session, no loading, no error
-        let props = LoginViewContainer.makeProps(authService: service)
+        let vm = makeViewModel()
+        let props = LoginViewContainer.makeProps(viewModel: vm)
 
         XCTAssertFalse(props.isLoading, "isLoading must be false in idle/signed-out state")
         XCTAssertNil(props.errorMessage, "errorMessage must be nil in idle/signed-out state")
     }
+}
+
+// MARK: - Private test fakes
+// Minimal Phase-04-local stubs. Phase 05 will replace with proper test doubles.
+
+private struct PropsTestStubRepository: AuthRepositoryProtocol {
+    func restoreSession() async throws -> UserSession? { nil }
+    func signIn(idToken: String, rawNonce: String) async throws -> UserSession {
+        throw AuthError.unknown(underlying: NSError(domain: "stub", code: -1))
+    }
+    func signOut() async throws {}
+}
+
+private struct PropsTestStubGoogleService: GoogleSignInServiceProtocol {
+    @MainActor
+    func obtainIDToken(presenting vc: UIViewController, hashedNonce: String) async throws -> String {
+        throw AuthError.unknown(underlying: NSError(domain: "stub", code: -1))
+    }
+    @MainActor
+    func clearLocalGoogleSession() {}
 }

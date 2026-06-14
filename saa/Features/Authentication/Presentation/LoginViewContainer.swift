@@ -1,39 +1,44 @@
 import SwiftUI
 
-// MARK: - LoginViewProps
-
-/// Pure value type capturing all state forwarded from `AuthService` to `LoginView`.
-/// Extracted so the prop-derivation logic can be tested without UIKit / SwiftUI hosting.
-struct LoginViewProps: Equatable {
-    let isLoading: Bool
-    let errorMessage: String?
-}
-
 // MARK: - LoginViewContainer
 
-/// Bridges `AuthService` + `LanguagePreference` state into the purely-presentational
+/// Bridges `LoginViewModel` + `LanguagePreference` state into the purely-presentational
 /// `LoginView`. Keeps all UIKit / async wiring out of `LoginView` itself.
+///
+/// `LoginViewModel` is constructor-injected (passed down from `AppRouter`) so the
+/// composition root controls the full dependency graph.
 struct LoginViewContainer: View {
 
-    @EnvironmentObject private var authService: AuthService
+    @StateObject var viewModel: LoginViewModel
     @EnvironmentObject private var languagePreference: LanguagePreference
 
-    // MARK: Props factory
+    init(viewModel: LoginViewModel) {
+        self._viewModel = StateObject(wrappedValue: viewModel)
+    }
 
-    /// Pure function — no side effects. Maps `AuthService` state to the props
+    // MARK: - Props
+
+    /// Pure value type capturing all state forwarded from `LoginViewModel` to `LoginView`.
+    /// Extracted so the prop-derivation logic can be tested without UIKit / SwiftUI hosting.
+    struct Props: Equatable {
+        let isLoading: Bool
+        let errorMessage: String?
+    }
+
+    /// Pure function — no side effects. Maps `LoginViewModel` state to the props
     /// `LoginView` needs. Tested directly in `LoginViewContainerPropsTests`.
-    static func makeProps(authService: AuthService) -> LoginViewProps {
-        LoginViewProps(
-            isLoading: authService.isLoading,
+    static func makeProps(viewModel: LoginViewModel) -> Props {
+        Props(
+            isLoading: viewModel.isLoading,
             // Catalog key (e.g. "login.error.network"). LoginView wraps in LocalizedStringKey
             // so SwiftUI's \.locale environment drives the displayed language.
-            // .userCancelled returns nil — stays silent per clarifications.md
-            errorMessage: authService.error?.messageKey
+            // .userCancelled returns nil — stays silent per clarifications.md.
+            errorMessage: viewModel.errorMessage
         )
     }
 
     var body: some View {
-        let props = Self.makeProps(authService: authService)
+        let props = Self.makeProps(viewModel: viewModel)
         LoginView(
             selectedLanguage: $languagePreference.current,
             isLoading: props.isLoading,
@@ -41,7 +46,7 @@ struct LoginViewContainer: View {
             onLoginTapped: {
                 Task { @MainActor in
                     guard let vc = UIApplication.shared.topViewController else { return }
-                    await authService.signInWithGoogle(presenting: vc)
+                    await viewModel.signIn(presenting: vc)
                 }
             },
             onLanguageChange: { newLang in
@@ -55,20 +60,41 @@ struct LoginViewContainer: View {
 
 #if DEBUG
 #Preview("Default") {
-    LoginViewContainer()
-        .environmentObject(AuthService.previewSignedOut())
+    let store = AuthSessionStore()
+    store.injectState(state: nil, isRestoring: false)
+    let vm = LoginViewModel(
+        signInUseCase: SignInWithGoogleUseCase(
+            repository: NoopAuthRepository(),
+            googleService: NoopGoogleSignInService(),
+            nonceGenerator: Nonce.default),
+        store: store)
+    return LoginViewContainer(viewModel: vm)
         .environmentObject(LanguagePreference())
 }
 
 #Preview("Loading") {
-    LoginViewContainer()
-        .environmentObject(AuthService.previewLoading())
+    let store = AuthSessionStore()
+    let vm = LoginViewModel(
+        signInUseCase: SignInWithGoogleUseCase(
+            repository: NoopAuthRepository(),
+            googleService: NoopGoogleSignInService(),
+            nonceGenerator: Nonce.default),
+        store: store)
+    vm.injectState(isLoading: true)
+    return LoginViewContainer(viewModel: vm)
         .environmentObject(LanguagePreference())
 }
 
 #Preview("Network Error") {
-    LoginViewContainer()
-        .environmentObject(AuthService.previewNetworkError())
+    let store = AuthSessionStore()
+    let vm = LoginViewModel(
+        signInUseCase: SignInWithGoogleUseCase(
+            repository: NoopAuthRepository(),
+            googleService: NoopGoogleSignInService(),
+            nonceGenerator: Nonce.default),
+        store: store)
+    vm.injectState(errorMessage: "login.error.network")
+    return LoginViewContainer(viewModel: vm)
         .environmentObject(LanguagePreference())
 }
 #endif

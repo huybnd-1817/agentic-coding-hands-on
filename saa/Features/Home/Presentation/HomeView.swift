@@ -1,22 +1,27 @@
 import SwiftUI
-import Supabase
 
 // MARK: - HomeView
 
 /// Minimal Home screen. Satisfies TC_LOGIN_FUN_007 (navigation to Home on
 /// successful sign-in) and TC_LOGIN_FUN_014 (logout returns to Login).
 ///
+/// `SignOutUseCase` is constructor-injected from `AppRouter` so the composition
+/// root controls the full dependency graph. `AuthSessionStore` is read via
+/// `@EnvironmentObject` for the greeting (no sign-out coupling needed here).
+///
 /// No styling polish — placeholder layout per Phase 06 spec.
 struct HomeView: View {
 
-    @EnvironmentObject private var authService: AuthService
+    @EnvironmentObject private var authSession: AuthSessionStore
     /// Honors the `\.locale` injected in `saaApp` so the greeting follows the
     /// in-app language selection (not just the system locale).
     @SwiftUI.Environment(\.locale) private var locale
 
+    let signOutUseCase: SignOutUseCase
+
     private var greetingText: String {
         let format = String(localized: "home.greeting", locale: locale)
-        return String(format: format, authService.session?.user.email ?? "")
+        return String(format: format, authSession.state?.email ?? "")
     }
 
     var body: some View {
@@ -35,9 +40,7 @@ struct HomeView: View {
             Spacer()
 
             Button(LocalizedStringKey("home.button.logout")) {
-                Task {
-                    await authService.signOut()
-                }
+                Task { await signOutUseCase.execute() }
             }
             .accessibilityIdentifier("home.logoutButton")
             .buttonStyle(.borderedProminent)
@@ -53,12 +56,20 @@ struct HomeView: View {
 
 #if DEBUG
 #Preview("Signed In") {
-    HomeView()
-        .environmentObject(AuthService.previewSignedIn())
+    let store = AuthSessionStore()
+    store.injectState(state: .preview, isRestoring: false)
+    let repo = NoopAuthRepository()
+    let google = NoopGoogleSignInService()
+    return HomeView(signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store))
+        .environmentObject(store)
 }
 
 #Preview("Default") {
-    HomeView()
-        .environmentObject(AuthService())
+    let store = AuthSessionStore()
+    store.injectState(state: nil, isRestoring: false)
+    let repo = NoopAuthRepository()
+    let google = NoopGoogleSignInService()
+    return HomeView(signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store))
+        .environmentObject(store)
 }
 #endif

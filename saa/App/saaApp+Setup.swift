@@ -1,0 +1,54 @@
+import Foundation
+import GoogleSignIn
+
+// MARK: - saaApp setup helpers
+
+/// Split from `saaApp.swift` to keep that file under the 80-LoC cap.
+/// Contains Google Sign-In configuration and the DEBUG-only UI-test seam helpers.
+extension saaApp {
+
+    static func configureGoogleSignIn() {
+        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path),
+              let clientID = dict["CLIENT_ID"] as? String else {
+            #if DEBUG
+            assertionFailure("GoogleService-Info.plist missing or malformed — see docs/setup-google-oauth.md")
+            #endif
+            return
+        }
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+    }
+
+    #if DEBUG
+    static func uiTestScenario() -> String? {
+        let args = CommandLine.arguments
+        guard let idx = args.firstIndex(of: "-uiTestMode"), idx + 1 < args.count else { return nil }
+        return args[idx + 1]
+    }
+
+    /// Applies the UI-test scenario to both the session store and the login view
+    /// model so that the first frame matches the assertion the XCUITest expects
+    /// (no taps, no async work — pure pre-injected state).
+    static func applyScenario(_ scenario: String, to store: AuthSessionStore, loginViewModel: LoginViewModel) {
+        switch scenario {
+        case "signedIn":
+            store.injectState(state: .preview, isRestoring: false)
+        case "signedOut":
+            store.injectState(state: nil, isRestoring: false)
+        case "restoring":
+            store.injectState(state: nil, isRestoring: true)
+        case "loading":
+            store.injectState(state: nil, isRestoring: false)
+            loginViewModel.injectState(isLoading: true)
+        case "networkError":
+            store.injectState(state: nil, isRestoring: false)
+            loginViewModel.injectState(errorMessage: "login.error.network")
+        case "notAuthorized":
+            store.injectState(state: nil, isRestoring: false)
+            loginViewModel.injectState(errorMessage: "login.error.notAuthorized")
+        default:
+            assertionFailure("Unknown uiTestMode scenario: \(scenario)")
+        }
+    }
+    #endif
+}

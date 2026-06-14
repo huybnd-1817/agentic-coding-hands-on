@@ -1,36 +1,36 @@
 import Foundation
 
+// MARK: - AuthSessionClearable
+
+/// Seam that lets `SignOutUseCase` clear session state without importing
+/// `AuthSessionStore` (a Presentation/Core type). Keeps Domain → Foundation only.
+protocol AuthSessionClearable: Sendable {
+    @MainActor func clear()
+}
+
 // MARK: - SignOutUseCase
 
-/// Orchestrates sign-out from both the repository (Supabase) and the Google SDK.
+/// Orchestrates sign-out from both the repository (Supabase) and the Google SDK,
+/// then clears the local session store.
 ///
 /// Best-effort semantics: the Supabase network call is attempted but its failure
 /// is intentionally swallowed — local state must be cleared regardless so the
 /// user returns to the Login screen (TC_LOGIN_FUN_014).
-///
-/// Phase 04 will extend this use case to also accept an `AuthSessionStore`
-/// dependency and call `store.clear()` after local sign-out.
 struct SignOutUseCase: Sendable {
 
-    private let repository: any AuthRepositoryProtocol
-    private let googleService: any GoogleSignInServiceProtocol
+    let repository: any AuthRepositoryProtocol
+    let googleService: any GoogleSignInServiceProtocol
+    let store: any AuthSessionClearable
 
-    init(
-        repository: some AuthRepositoryProtocol,
-        googleService: some GoogleSignInServiceProtocol
-    ) {
-        self.repository = repository
-        self.googleService = googleService
-    }
-
-    /// Signs the user out from Supabase (best-effort) and clears the Google session.
+    /// Signs the user out from Supabase (best-effort), clears the Google session,
+    /// and wipes the local `AuthSessionStore`.
     ///
     /// Never throws — the repository call is wrapped in `try?` so a network failure
-    /// does not prevent the Google cache from being cleared.
+    /// does not prevent local sign-out (TC_LOGIN_FUN_014).
     @MainActor
     func execute() async {
-        // Best-effort: network or server failure does not block local sign-out.
         try? await repository.signOut()
         googleService.clearLocalGoogleSession()
+        store.clear()
     }
 }

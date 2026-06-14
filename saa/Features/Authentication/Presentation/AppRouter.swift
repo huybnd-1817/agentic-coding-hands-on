@@ -1,5 +1,4 @@
 import SwiftUI
-import Supabase
 
 // MARK: - AppRoute
 
@@ -18,45 +17,51 @@ enum AppRoute: Equatable {
 // MARK: - AppRouter
 
 /// Root router — switches between the launch spinner, Home, and Login based on
-/// `AuthService` state.
+/// `AuthSessionStore` state.
 ///
 /// Gate order (encoded once in `activeRoute(for:)`):
-///   1. `isRestoringSession` → spinner (prevents Login flash on relaunch with valid token)
-///   2. `session != nil`     → HomeView
-///   3. else                 → LoginViewContainer
+///   1. `isRestoring` → spinner (prevents Login flash on relaunch with valid token)
+///   2. `state != nil` → HomeView
+///   3. else          → LoginViewContainer
 ///
 /// Covers: TC_LOGIN_ACC_001, TC_LOGIN_ACC_002, TC_LOGIN_FUN_007,
 ///         TC_LOGIN_FUN_012, TC_LOGIN_FUN_013, TC_LOGIN_FUN_014.
 struct AppRouter: View {
 
-    @EnvironmentObject private var authService: AuthService
+    @EnvironmentObject private var authSession: AuthSessionStore
 
-    /// Pure mapping from `AuthService` state → which branch `body` will mount.
+    /// Composition root owns the VM so its state can be pre-populated for UI tests
+    /// before the first frame renders. AppRouter just passes it through to the
+    /// LoginViewContainer when the login branch is mounted.
+    let loginViewModel: LoginViewModel
+    let signOutUseCase: SignOutUseCase
+
+    /// Pure mapping from `AuthSessionStore` state → which branch `body` will mount.
     /// Single source of truth for routing — tests assert against this same
     /// expression rather than reimplementing the guard order.
-    static func activeRoute(for service: AuthService) -> AppRoute {
-        if service.isRestoringSession { return .spinner }
-        if service.session != nil { return .home }
+    static func activeRoute(for store: AuthSessionStore) -> AppRoute {
+        if store.isRestoring { return .spinner }
+        if store.state != nil { return .home }
         return .login
     }
 
     var body: some View {
         Group {
-            switch Self.activeRoute(for: authService) {
+            switch Self.activeRoute(for: authSession) {
             case .spinner:
                 ProgressView()
                     .progressViewStyle(.circular)
                     .accessibilityIdentifier("router.spinner")
             case .home:
-                HomeView()
+                HomeView(signOutUseCase: signOutUseCase)
                     .accessibilityIdentifier("router.home")
             case .login:
-                LoginViewContainer()
+                LoginViewContainer(viewModel: loginViewModel)
                     .accessibilityIdentifier("router.login")
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: authService.session?.user.id)
-        .animation(.easeInOut(duration: 0.25), value: authService.isRestoringSession)
+        .animation(.easeInOut(duration: 0.25), value: authSession.state?.userID)
+        .animation(.easeInOut(duration: 0.25), value: authSession.isRestoring)
     }
 }
 
@@ -64,20 +69,47 @@ struct AppRouter: View {
 
 #if DEBUG
 #Preview("Restoring") {
-    AppRouter()
-        .environmentObject(AuthService.previewRestoring())
-        .environmentObject(LanguagePreference())
+    let store = AuthSessionStore()
+    store.injectState(state: nil, isRestoring: true)
+    let repo = NoopAuthRepository()
+    let google = NoopGoogleSignInService()
+    let signOutUseCase = SignOutUseCase(repository: repo, googleService: google, store: store)
+    let vm = LoginViewModel(
+        signInUseCase: SignInWithGoogleUseCase(
+            repository: repo, googleService: google, nonceGenerator: Nonce.default),
+        store: store)
+    return AppRouter(loginViewModel: vm, signOutUseCase: signOutUseCase)
+    .environmentObject(store)
+    .environmentObject(LanguagePreference())
 }
 
 #Preview("Signed In") {
-    AppRouter()
-        .environmentObject(AuthService.previewSignedIn())
-        .environmentObject(LanguagePreference())
+    let store = AuthSessionStore()
+    store.injectState(state: .preview, isRestoring: false)
+    let repo = NoopAuthRepository()
+    let google = NoopGoogleSignInService()
+    let signOutUseCase = SignOutUseCase(repository: repo, googleService: google, store: store)
+    let vm = LoginViewModel(
+        signInUseCase: SignInWithGoogleUseCase(
+            repository: repo, googleService: google, nonceGenerator: Nonce.default),
+        store: store)
+    return AppRouter(loginViewModel: vm, signOutUseCase: signOutUseCase)
+    .environmentObject(store)
+    .environmentObject(LanguagePreference())
 }
 
 #Preview("Signed Out") {
-    AppRouter()
-        .environmentObject(AuthService.previewSignedOut())
-        .environmentObject(LanguagePreference())
+    let store = AuthSessionStore()
+    store.injectState(state: nil, isRestoring: false)
+    let repo = NoopAuthRepository()
+    let google = NoopGoogleSignInService()
+    let signOutUseCase = SignOutUseCase(repository: repo, googleService: google, store: store)
+    let vm = LoginViewModel(
+        signInUseCase: SignInWithGoogleUseCase(
+            repository: repo, googleService: google, nonceGenerator: Nonce.default),
+        store: store)
+    return AppRouter(loginViewModel: vm, signOutUseCase: signOutUseCase)
+    .environmentObject(store)
+    .environmentObject(LanguagePreference())
 }
 #endif
