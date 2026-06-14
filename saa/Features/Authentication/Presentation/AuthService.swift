@@ -133,7 +133,7 @@ final class AuthService: ObservableObject {
             self.session = authResponse
 
         } catch let err {
-            self.error = AuthError.from(err)
+            self.error = AuthErrorMapper.from(err)
         }
     }
 

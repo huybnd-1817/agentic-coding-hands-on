@@ -5,7 +5,7 @@ import Supabase
 
 // MARK: - AuthErrorMappingTests
 //
-// Table-driven tests for saa.AuthError.from(_:).
+// Table-driven tests for AuthErrorMapper.from(_:).
 //
 // "AuthError" is ambiguous in this module because Supabase re-exports Auth.AuthError.
 // All references to the domain-level error use the explicit "saa.AuthError" qualifier.
@@ -23,7 +23,7 @@ final class AuthErrorMappingTests: XCTestCase {
 
     func testPassThroughAuthError_userCancelled() {
         let input: saa.AuthError = .userCancelled
-        let result = saa.AuthError.from(input)
+        let result = AuthErrorMapper.from(input)
         guard case .userCancelled = result else {
             XCTFail("Expected .userCancelled, got \(result)")
             return
@@ -32,7 +32,7 @@ final class AuthErrorMappingTests: XCTestCase {
 
     func testPassThroughAuthError_networkUnavailable() {
         let input: saa.AuthError = .networkUnavailable
-        let result = saa.AuthError.from(input)
+        let result = AuthErrorMapper.from(input)
         guard case .networkUnavailable = result else {
             XCTFail("Expected .networkUnavailable, got \(result)")
             return
@@ -42,7 +42,7 @@ final class AuthErrorMappingTests: XCTestCase {
     // MARK: - URLError → networkUnavailable
 
     func testURLError_mapsToNetworkUnavailable() {
-        let result = saa.AuthError.from(URLError(.notConnectedToInternet))
+        let result = AuthErrorMapper.from(URLError(.notConnectedToInternet))
         guard case .networkUnavailable = result else {
             XCTFail("Expected .networkUnavailable, got \(result)")
             return
@@ -60,7 +60,7 @@ final class AuthErrorMappingTests: XCTestCase {
             domain: kGIDSignInErrorDomain,
             code: GIDSignInError.canceled.rawValue   // -5
         )
-        let result = saa.AuthError.from(nsErr)
+        let result = AuthErrorMapper.from(nsErr)
         guard case .userCancelled = result else {
             XCTFail("Expected .userCancelled for GIDSignInError.canceled, got \(result)")
             return
@@ -84,7 +84,7 @@ final class AuthErrorMappingTests: XCTestCase {
     }
 
     func testSupabaseAuthError_401_mapsToNotAuthorized() {
-        let result = saa.AuthError.from(makeSupabaseApiError(statusCode: 401))
+        let result = AuthErrorMapper.from(makeSupabaseApiError(statusCode: 401))
         guard case .notAuthorized = result else {
             XCTFail("Expected .notAuthorized for 401, got \(result)")
             return
@@ -92,7 +92,7 @@ final class AuthErrorMappingTests: XCTestCase {
     }
 
     func testSupabaseAuthError_403_mapsToNotAuthorized() {
-        let result = saa.AuthError.from(makeSupabaseApiError(statusCode: 403))
+        let result = AuthErrorMapper.from(makeSupabaseApiError(statusCode: 403))
         guard case .notAuthorized = result else {
             XCTFail("Expected .notAuthorized for 403, got \(result)")
             return
@@ -100,7 +100,7 @@ final class AuthErrorMappingTests: XCTestCase {
     }
 
     func testSupabaseAuthError_422_mapsToNotAuthorized() {
-        let result = saa.AuthError.from(makeSupabaseApiError(statusCode: 422))
+        let result = AuthErrorMapper.from(makeSupabaseApiError(statusCode: 422))
         guard case .notAuthorized = result else {
             XCTFail("Expected .notAuthorized for 422, got \(result)")
             return
@@ -108,7 +108,7 @@ final class AuthErrorMappingTests: XCTestCase {
     }
 
     func testSupabaseAuthError_500_mapsToUnknown() {
-        let result = saa.AuthError.from(makeSupabaseApiError(statusCode: 500))
+        let result = AuthErrorMapper.from(makeSupabaseApiError(statusCode: 500))
         guard case .unknown = result else {
             XCTFail("Expected .unknown for 500, got \(result)")
             return
@@ -119,7 +119,7 @@ final class AuthErrorMappingTests: XCTestCase {
 
     func testPostgrestError_code42501_mapsToNotAuthorized() {
         let pgError = PostgrestError(code: "42501", message: "permission denied")
-        let result = saa.AuthError.from(pgError)
+        let result = AuthErrorMapper.from(pgError)
         guard case .notAuthorized = result else {
             XCTFail("Expected .notAuthorized for PostgrestError code 42501, got \(result)")
             return
@@ -131,7 +131,7 @@ final class AuthErrorMappingTests: XCTestCase {
             code: "P0001",
             message: "Account not authorized for this operation"
         )
-        let result = saa.AuthError.from(pgError)
+        let result = AuthErrorMapper.from(pgError)
         guard case .notAuthorized = result else {
             XCTFail("Expected .notAuthorized for PostgrestError 'Account not authorized', got \(result)")
             return
@@ -142,7 +142,7 @@ final class AuthErrorMappingTests: XCTestCase {
 
     func testPlainNSError_mapsToUnknown() {
         let nsErr = NSError(domain: "com.test", code: 999)
-        let result = saa.AuthError.from(nsErr)
+        let result = AuthErrorMapper.from(nsErr)
         guard case .unknown = result else {
             XCTFail("Expected .unknown for plain NSError, got \(result)")
             return
