@@ -3,6 +3,8 @@ name: iOS Tests
 # Run on pull requests only. Push events to long-lived branches are not gated
 # by this workflow — the PR is the integration boundary.
 on:
+  push:
+    branches: [main]
   pull_request:
 
 jobs:
