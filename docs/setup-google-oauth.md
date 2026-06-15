@@ -187,8 +187,8 @@ This guide walks a new developer through every manual step required to run the
 > Google provider from `supabase/config.toml` + `.env` (Part 2). The
 > dashboard does not exist for local Supabase.
 >
-> **No Web OAuth client is required for this app.** `AuthService` uses
-> `signInWithIdToken` with a token minted by the native iOS Google SDK, so
+> **No Web OAuth client is required for this app.** The app uses
+> `signInWithIdToken` (via `SupabaseAuthRepository`) with a token minted by the native iOS Google SDK, so
 > GoTrue only needs the iOS `CLIENT_ID` configured as an allowed audience
 > (which Part 2 already does via `GOOGLE_CLIENT_ID` in `.env`). A
 > Web-application OAuth client and client secret are only needed if you

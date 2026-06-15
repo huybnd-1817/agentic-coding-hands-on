@@ -3,6 +3,8 @@ name: iOS Tests
 # Run on pull requests only. Push events to long-lived branches are not gated
 # by this workflow — the PR is the integration boundary.
 on:
+  push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -63,7 +65,9 @@ jobs:
       # xcresultparser converts the .xcresult bundle into Cobertura XML,
       # the format codecov-action ingests for Swift projects.
       - name: Install xcresultparser
-        run: brew install a7ex/homebrew-formulae/xcresultparser
+        run: |
+          brew tap a7ex/formulae
+          brew install a7ex/formulae/xcresultparser
 
       - name: Run tests with coverage
         run: |

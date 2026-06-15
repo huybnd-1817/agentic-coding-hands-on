@@ -49,7 +49,12 @@ xcrun xccov view --report --json /tmp/saa-build/saa-tests.xcresult \
 
 ---
 
-## Observed coverage — 2026-06-13 run
+## Observed coverage — 2026-06-13 run (pre-Clean-Architecture refactor)
+
+> **Note:** This snapshot was recorded before the Clean Architecture refactor (shipped 2026-06-14).
+> `AuthService.swift` and `AuthServiceMocks.swift` no longer exist — replaced by
+> `SupabaseAuthRepository`, `GoogleSignInService`, use cases, and `AuthSessionStore`.
+> Re-run coverage locally or via CI to get current numbers.
 
 **App target overall:** 75.13% (840/1118 lines)
 
@@ -98,13 +103,13 @@ branch); the pure happy path and the NIST FIPS 180-4 known vector for `"abc"` ar
 fully covered by `NonceTests`.
 **Decision: document gap, do not add tests.**
 
-### `AuthService.swift` — 46.94% vs ≥ 60% target
+### `AuthService.swift` — 46.94% vs ≥ 60% target _(file deleted — no longer applicable)_
 
-The `signInWithGoogle` method launches a real Google OAuth UIKit sheet, which crashes in
-unit test context. This was a known exclusion from Phase 02's scope (see plan.md
-constraints). The covered lines include: `injectState`, `restoreSession` (both success and
-failure paths), `signOut`, and the constructor — all paths exercised by the Phase 02/03
-tests. **Expected miss — no further tests required.**
+`AuthService.swift` was deleted by the Clean Architecture refactor. Its responsibilities
+are now split across `SupabaseAuthRepository` (data layer), `SignInWithGoogleUseCase` /
+`RestoreSessionUseCase` / `SignOutUseCase` (domain layer), and `GoogleSignInService` (data layer).
+The 46.94% gap rationale no longer applies. Coverage targets for the replacement files
+will be recorded after the first post-refactor CI run.
 
 ---
 

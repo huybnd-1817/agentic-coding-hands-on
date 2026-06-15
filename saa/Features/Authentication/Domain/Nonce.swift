@@ -1,6 +1,26 @@
 import Foundation
 import CryptoKit
 
+// MARK: - NonceGenerating
+
+/// Abstraction over nonce generation so use cases can inject a deterministic
+/// fake in unit tests without touching the live CSPRNG.
+protocol NonceGenerating: Sendable {
+    /// Returns a cryptographically random URL-safe nonce string.
+    func random() -> String
+    /// Returns the lowercase hex-encoded SHA-256 digest of `raw`.
+    func sha256(_ raw: String) -> String
+}
+
+// MARK: - DefaultNonceGenerator
+
+/// Production implementation of `NonceGenerating`. Delegates to the `Nonce`
+/// static helpers so the underlying crypto logic lives in exactly one place.
+struct DefaultNonceGenerator: NonceGenerating, Sendable {
+    func random() -> String { Nonce.random() }
+    func sha256(_ raw: String) -> String { Nonce.sha256(raw) }
+}
+
 // MARK: - Nonce
 
 /// Cryptographic nonce helpers for the Google Sign-In + Supabase OIDC flow.
@@ -55,4 +75,11 @@ enum Nonce {
         let hashed = SHA256.hash(data: inputData)
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
+}
+
+// MARK: - Nonce convenience accessor
+
+extension Nonce {
+    /// Shared production `NonceGenerating` instance for injection into use cases.
+    static let `default`: any NonceGenerating = DefaultNonceGenerator()
 }

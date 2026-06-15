@@ -9,7 +9,7 @@ import Supabase
 /// default is sufficient and avoids stale-session pitfalls across build variants.
 ///
 /// `emitLocalSessionAsInitialSession: true` opts into supabase-swift's upcoming
-/// behavior (will become default in the next major). Our `AuthService.restoreSession()`
+/// behavior (will become default in the next major). `SupabaseAuthRepository.restoreSession()`
 /// validates sessions via `try await client.auth.session`, which throws on expired
 /// tokens — we do not rely on the legacy initial-session emission, so no
 /// `session.isExpired` check is required at the call site.
