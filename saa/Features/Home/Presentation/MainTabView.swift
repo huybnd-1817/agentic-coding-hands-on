@@ -8,6 +8,11 @@ import SwiftUI
 /// 07) can mount `HomeViewContainer` without forcing this file to depend on the
 /// real ViewModel graph. Stubs are placeholders until destination screens land.
 ///
+/// The system `TabView` is used solely for tab-switching state. Its native bar
+/// is hidden (`.toolbar(.hidden, for: .tabBar)`) so a single Figma-styled
+/// `HomeBottomNavBar` can be overlaid at the bottom — eliminating the prior
+/// duplicate-bar regression (custom bar inside HomeView + system bar at root).
+///
 /// IMPORTANT: this view does NOT carry an `.accessibilityElement(children: .contain)`
 /// boundary — that would shadow the `home.root` identifier set inside `HomeView`,
 /// breaking `LoginFlowUITests.testSignedInShowsHome`.
@@ -18,32 +23,30 @@ struct MainTabView<HomeContent: View>: View {
     @State private var selection: NavTab = .home
 
     var body: some View {
-        TabView(selection: $selection) {
-            home
-                .tabItem {
-                    Label(LocalizedStringKey("home.nav.home"), systemImage: NavTab.home.systemImage)
-                }
-                .tag(NavTab.home)
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selection) {
+                home
+                    .tag(NavTab.home)
+                    .toolbar(.hidden, for: .tabBar)
 
-            AwardsTabStubView()
-                .tabItem {
-                    Label(LocalizedStringKey("home.nav.awards"), systemImage: NavTab.awards.systemImage)
-                }
-                .tag(NavTab.awards)
+                AwardsTabStubView()
+                    .tag(NavTab.awards)
+                    .toolbar(.hidden, for: .tabBar)
 
-            KudosTabStubView()
-                .tabItem {
-                    Label(LocalizedStringKey("home.nav.kudos"), systemImage: NavTab.kudos.systemImage)
-                }
-                .tag(NavTab.kudos)
+                KudosTabStubView()
+                    .tag(NavTab.kudos)
+                    .toolbar(.hidden, for: .tabBar)
 
-            ProfileTabStubView()
-                .tabItem {
-                    Label(LocalizedStringKey("home.nav.profile"), systemImage: NavTab.profile.systemImage)
-                }
-                .tag(NavTab.profile)
+                ProfileTabStubView()
+                    .tag(NavTab.profile)
+                    .toolbar(.hidden, for: .tabBar)
+            }
+
+            HomeBottomNavBar(
+                selectedTab: selection,
+                onTabTap: { tab in selection = tab }
+            )
         }
-        .tint(Color(red: 244.0/255, green: 196.0/255, blue: 48.0/255))
         .accessibilityIdentifier("home.mainTab")
     }
 }
