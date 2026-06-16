@@ -1,27 +1,21 @@
 import SwiftUI
 
-/// Top bar of the Home screen: brand logo left, search + bell (with unread badge)
-/// + language picker right. Extracted verbatim from MoMorph design.
+/// Top bar of the Home screen: brand logo left, language picker + search + bell
+/// (with unread badge) right. Order mirrors MoMorph design OuH1BUTYT0
+/// (language chip leads, then search, then notification).
 struct HomeHeaderView: View {
 
     // MARK: - Inputs
 
     let unreadCount: Int
 
+    @Binding var selectedLanguage: AppLanguage
+
     // MARK: - Outputs
 
     let onSearchTap: () -> Void
     let onBellTap: () -> Void
-    let onLanguageTap: () -> Void
-
-    // MARK: - Environment
-
-    // Qualified to disambiguate from the project-local `enum Environment`.
-    @SwiftUI.Environment(\.locale) private var locale
-
-    private var languageBadge: String {
-        locale.language.languageCode?.identifier == "vi" ? "VN" : "EN"
-    }
+    let onLanguageChange: (AppLanguage) -> Void
 
     // MARK: - Body
 
@@ -36,6 +30,14 @@ struct HomeHeaderView: View {
             Spacer(minLength: 8)
 
             HStack(spacing: 16) {
+                // Language picker — inline dropdown matching Login screen
+                LanguagePicker(
+                    selectedLanguage: $selectedLanguage,
+                    onLanguageChange: onLanguageChange
+                )
+                .accessibilityIdentifier("home.header.language")
+                .accessibilityLabel(Text(LocalizedStringKey("home.language.title")))
+
                 // Search
                 Button(action: onSearchTap) {
                     Image(systemName: "magnifyingglass")
@@ -61,24 +63,6 @@ struct HomeHeaderView: View {
                     }
                 }
                 .accessibilityIdentifier("home.header.bell")
-
-                // Language picker — taps open the LanguageSelectionSheet
-                Button(action: onLanguageTap) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundColor(.white)
-                        Text(languageBadge)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
-                .accessibilityIdentifier("home.header.language")
-                .accessibilityLabel(Text(LocalizedStringKey("home.language.title")))
             }
         }
         .padding(.horizontal, 20)
@@ -96,17 +80,29 @@ private extension Color {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("Unread = 3") {
-    ZStack {
-        Color(red: 0, green: 16.0/255, blue: 26.0/255).ignoresSafeArea()
-        HomeHeaderView(unreadCount: 3, onSearchTap: {}, onBellTap: {}, onLanguageTap: {})
+private struct HomeHeaderPreviewHost: View {
+    @State var lang: AppLanguage = .vi
+    let unread: Int
+
+    var body: some View {
+        ZStack {
+            Color(red: 0, green: 16.0/255, blue: 26.0/255).ignoresSafeArea()
+            HomeHeaderView(
+                unreadCount: unread,
+                selectedLanguage: $lang,
+                onSearchTap: {},
+                onBellTap: {},
+                onLanguageChange: { _ in }
+            )
+        }
     }
 }
 
+#Preview("Unread = 3") {
+    HomeHeaderPreviewHost(unread: 3)
+}
+
 #Preview("No badge") {
-    ZStack {
-        Color(red: 0, green: 16.0/255, blue: 26.0/255).ignoresSafeArea()
-        HomeHeaderView(unreadCount: 0, onSearchTap: {}, onBellTap: {}, onLanguageTap: {})
-    }
+    HomeHeaderPreviewHost(unread: 0)
 }
 #endif

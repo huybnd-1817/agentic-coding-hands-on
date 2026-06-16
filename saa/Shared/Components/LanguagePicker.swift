@@ -101,6 +101,7 @@ struct LanguagePicker: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("languagePicker.row.\(language.rawValue)")
     }
 
     // MARK: - Private helpers
