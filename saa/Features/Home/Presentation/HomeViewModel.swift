@@ -27,6 +27,14 @@ final class HomeViewModel: ObservableObject {
 
     let isKudosAvailable: Bool
 
+    /// Pre-formatted event date for display ("dd/MM/yyyy"). Computed once at
+    /// init; the value never changes during a session.
+    let eventDateText: String
+
+    /// Venue name passed straight through from `FeatureFlags`. Exposed on the
+    /// VM so previews and the container both pick it up uniformly.
+    let venueName: String
+
     // MARK: - Dependencies
 
     private let repository: any AwardsRepositoryProtocol
@@ -46,15 +54,22 @@ final class HomeViewModel: ObservableObject {
         notificationStore: NotificationStubStore,
         isKudosAvailable: Bool = FeatureFlags.isKudosAvailable,
         eventDate: Date = FeatureFlags.eventDate,
+        venueName: String = FeatureFlags.venueName,
         clock: @escaping () -> Date = { Date() }
     ) {
         self.repository = repository
         self.notificationStore = notificationStore
         self.isKudosAvailable = isKudosAvailable
         self.eventDate = eventDate
+        self.venueName = venueName
         self.clock = clock
         self.countdown = Countdown.until(eventDate, from: clock())
         self.unreadCount = notificationStore.unreadCount
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yyyy"
+        formatter.timeZone = TimeZone(identifier: "Asia/Saigon")
+        self.eventDateText = formatter.string(from: eventDate)
 
         notificationCancellable = notificationStore.$unreadCount
             .receive(on: RunLoop.main)
