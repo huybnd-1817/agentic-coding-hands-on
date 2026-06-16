@@ -5,8 +5,8 @@ import SwiftUI
 /// Root Home screen assembly for SAA 2025.
 ///
 /// Purely presentational — all state is received via init params or local
-/// @State stubs (mock values from Figma). Track B integration will replace
-/// mock defaults with ViewModel-driven bindings.
+/// @State stubs (mock values from Figma). Track B integration replaces mock
+/// defaults with ViewModel-driven bindings via `HomeViewContainer`.
 ///
 /// Backward-compatibility notes:
 /// - `signOutUseCase` param is retained so `AppRouter` and existing UI tests
@@ -28,48 +28,51 @@ struct HomeView: View {
     var countdown: Countdown     = .zero
     var unreadCount: Int         = 0
     var isKudosAvailable: Bool   = true
+    var eventDateText: String    = "26/12/2026"
+    var venueName: String        = "Âu Cơ Art Center"
+
+    // MARK: - Bindings
+
+    @Binding var selectedLanguage: AppLanguage
 
     // MARK: - Action closures (default no-op for previewability)
 
-    var onAboutAward:    () -> Void        = {}
-    var onAboutKudos:    () -> Void        = {}
-    var onAwardDetail:   (UUID) -> Void    = { _ in }
-    var onRetryAwards:   () -> Void        = {}
-    var onKudosDetail:   () -> Void        = {}
-    var onBellTap:       () -> Void        = {}
-    var onSearchTap:     () -> Void        = {}
-    var onLanguageTap:   () -> Void        = {}
-    var onFabPencilTap:  () -> Void        = {}
-    var onFabKudosTap:   () -> Void        = {}
-    var onNavTabTap:     (NavTab) -> Void  = { _ in }
-
-    // MARK: - Local UI state
-
-    @State private var selectedTab: NavTab = .home
+    var onAboutAward:     () -> Void               = {}
+    var onAboutKudos:     () -> Void               = {}
+    var onAwardDetail:    (UUID) -> Void           = { _ in }
+    var onRetryAwards:    () -> Void               = {}
+    var onKudosDetail:    () -> Void               = {}
+    var onBellTap:        () -> Void               = {}
+    var onSearchTap:      () -> Void               = {}
+    var onLanguageChange: (AppLanguage) -> Void    = { _ in }
+    var onFabPencilTap:   () -> Void               = {}
+    var onFabKudosTap:    () -> Void               = {}
 
     // MARK: - Body
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            // Full-screen dark background
-            Color.homeBackdrop.ignoresSafeArea()
-
             // Scrollable main content
             VStack(spacing: 0) {
                 HomeHeaderView(
                     unreadCount: unreadCount,
+                    selectedLanguage: $selectedLanguage,
                     onSearchTap: onSearchTap,
                     onBellTap: onBellTap,
-                    onLanguageTap: onLanguageTap
+                    onLanguageChange: onLanguageChange
                 )
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 28) {
                         HomeHeroSection(
                             countdown: countdown,
+                            eventDateText: eventDateText,
+                            venueName: venueName,
                             onAboutAward: onAboutAward,
                             onAboutKudos: onAboutKudos
                         )
+
+                        HomeNoteSection()
 
                         HomeAwardsSection(
                             awardsState: awardsState,
@@ -81,29 +84,24 @@ struct HomeView: View {
                             HomeKudosSection(onKudosDetail: onKudosDetail)
                         }
 
-                        // Bottom padding so FAB doesn't overlap last content
-                        Spacer().frame(height: 80)
+                        // Bottom padding clears the overlaid HomeBottomNavBar
+                        // (rendered by MainTabView) + small FAB clearance.
+                        Spacer().frame(height: 120)
                     }
                     .padding(.top, 16)
                 }
-
-                HomeBottomNavBar(
-                    selectedTab: selectedTab,
-                    onTabTap: { tab in
-                        selectedTab = tab
-                        onNavTabTap(tab)
-                    }
-                )
             }
 
-            // Floating action button — bottom-trailing, above nav bar
+            // Floating action button — bottom-trailing, above the
+            // MainTabView-owned HomeBottomNavBar (~72pt clear + safe area).
             HomeFloatingActionButton(
                 onFabPencilTap: onFabPencilTap,
                 onFabKudosTap: onFabKudosTap
             )
             .padding(.trailing, 20)
-            .padding(.bottom, 72)  // clears the nav bar height
+            .padding(.bottom, 80)
         }
+        .background(backgroundLayer)
         // Accessibility boundary — prevents router.home from shadowing children.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.root")
@@ -127,68 +125,88 @@ struct HomeView: View {
         )
         .preferredColorScheme(.dark)
     }
+
+    // MARK: - Backdrop
+
+    /// Dark color + keyvisual artwork (with shadow gradients baked in by Figma
+    /// export) extending edge-to-edge. The exported PNG already contains the
+    /// `Shadow Left` and `Shadow Bottom` linear gradients from the design
+    /// group `mm_media_bg`, so no extra overlays are needed here.
+    private var backgroundLayer: some View {
+        ZStack {
+            Color.homeBackdrop
+
+            Image("home-bg")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .ignoresSafeArea()
+    }
 }
 
 // MARK: - Color tokens
 
 private extension Color {
+    /// Figma frame fill — #00101A.
     static let homeBackdrop = Color(red: 0.0, green: 16.0/255, blue: 26.0/255)
 }
 
 // MARK: - Previews
 
 #if DEBUG
+private struct HomePreviewHost: View {
+    let awardsState: AwardsState
+    let countdown: Countdown
+    let isKudosAvailable: Bool
+
+    @State private var language: AppLanguage = .vi
+
+    var body: some View {
+        let store = AuthSessionStore()
+        store.injectState(state: .preview, isRestoring: false)
+        let repo   = NoopAuthRepository()
+        let google = NoopGoogleSignInService()
+        return HomeView(
+            signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store),
+            awardsState: awardsState,
+            countdown: countdown,
+            isKudosAvailable: isKudosAvailable,
+            selectedLanguage: $language
+        )
+        .environmentObject(store)
+    }
+}
+
 #Preview("Loaded — Kudos on") {
-    let store = AuthSessionStore()
-    store.injectState(state: .preview, isRestoring: false)
-    let repo   = NoopAuthRepository()
-    let google = NoopGoogleSignInService()
-    return HomeView(
-        signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store),
+    HomePreviewHost(
         awardsState: .loaded(HomeMockData.previewAwards),
         countdown: HomeMockData.previewCountdown,
         isKudosAvailable: true
     )
-    .environmentObject(store)
 }
 
 #Preview("Loading") {
-    let store = AuthSessionStore()
-    store.injectState(state: .preview, isRestoring: false)
-    let repo   = NoopAuthRepository()
-    let google = NoopGoogleSignInService()
-    return HomeView(
-        signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store),
+    HomePreviewHost(
         awardsState: .loading,
+        countdown: .zero,
         isKudosAvailable: false
     )
-    .environmentObject(store)
 }
 
 #Preview("Error — Kudos off") {
-    let store = AuthSessionStore()
-    store.injectState(state: .preview, isRestoring: false)
-    let repo   = NoopAuthRepository()
-    let google = NoopGoogleSignInService()
-    return HomeView(
-        signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store),
+    HomePreviewHost(
         awardsState: .error(.network),
         countdown: HomeMockData.previewCountdown,
         isKudosAvailable: false
     )
-    .environmentObject(store)
 }
 
 #Preview("Empty awards") {
-    let store = AuthSessionStore()
-    store.injectState(state: .preview, isRestoring: false)
-    let repo   = NoopAuthRepository()
-    let google = NoopGoogleSignInService()
-    return HomeView(
-        signOutUseCase: SignOutUseCase(repository: repo, googleService: google, store: store),
+    HomePreviewHost(
         awardsState: .empty,
+        countdown: .zero,
         isKudosAvailable: true
     )
-    .environmentObject(store)
 }
 #endif

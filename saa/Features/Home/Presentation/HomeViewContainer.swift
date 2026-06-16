@@ -8,8 +8,8 @@ import SwiftUI
 ///
 /// `HomeView` remains pure-presentational; everything VM- or navigation-aware
 /// lives in this file. Stub destinations (Phase 06) are pushed via a single
-/// `NavigationStack` path. The `LanguageSelectionSheet` is presented as a
-/// `.sheet`.
+/// `NavigationStack` path. Language selection is now an inline dropdown
+/// rendered by `LanguagePicker` inside the header — no sheet involved.
 struct HomeViewContainer: View {
 
     // MARK: - Dependencies
@@ -20,7 +20,7 @@ struct HomeViewContainer: View {
 
     let signOutUseCase: SignOutUseCase
 
-    // MARK: - Navigation + sheet state
+    // MARK: - Navigation state
 
     /// Typed-array `NavigationStack` path so we can inspect the current top of
     /// stack. Plain `NavigationPath` does not expose its contents, but we need
@@ -28,7 +28,6 @@ struct HomeViewContainer: View {
     /// fires `doubleTap()` the two events land in the same SwiftUI runloop
     /// frame, beating any `@State Bool` gate the FAB might hold.
     @State private var path: [HomeRoute] = []
-    @State private var isLanguageSheetPresented = false
 
     // MARK: - Init
 
@@ -52,25 +51,21 @@ struct HomeViewContainer: View {
                 countdown: viewModel.countdown,
                 unreadCount: viewModel.unreadCount,
                 isKudosAvailable: viewModel.isKudosAvailable,
-                onAboutAward:   { push(.awardsOverview) },
-                onAboutKudos:   { push(.kudosOverview) },
-                onAwardDetail:  { id in push(.awardDetail(id)) },
-                onRetryAwards:  { Task { await viewModel.retryAwards() } },
-                onKudosDetail:  { push(.kudosDetail) },
-                onBellTap:      { push(.notifications) },
-                onSearchTap:    { push(.search) },
-                onLanguageTap:  { isLanguageSheetPresented = true },
-                onFabPencilTap: { push(.writeKudo) },
-                onFabKudosTap:  { push(.kudosFeed) },
-                onNavTabTap:    { _ in /* nav tab routing handled by MainTabView */ }
+                eventDateText: viewModel.eventDateText,
+                venueName: viewModel.venueName,
+                selectedLanguage: $languagePreference.current,
+                onAboutAward:     { push(.awardsOverview) },
+                onAboutKudos:     { push(.kudosOverview) },
+                onAwardDetail:    { id in push(.awardDetail(id)) },
+                onRetryAwards:    { Task { await viewModel.retryAwards() } },
+                onKudosDetail:    { push(.kudosDetail) },
+                onBellTap:        { push(.notifications) },
+                onSearchTap:      { push(.search) },
+                onLanguageChange: { languagePreference.current = $0 },
+                onFabPencilTap:   { push(.writeKudo) },
+                onFabKudosTap:    { push(.kudosFeed) }
             )
             .navigationDestination(for: HomeRoute.self, destination: destination)
-        }
-        .sheet(isPresented: $isLanguageSheetPresented) {
-            LanguageSelectionSheet(
-                selectedLanguage: $languagePreference.current,
-                onLanguageChange: { languagePreference.current = $0 }
-            )
         }
         .task {
             viewModel.startCountdownTimer()
