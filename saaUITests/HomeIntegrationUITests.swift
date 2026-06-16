@@ -5,7 +5,7 @@ import XCTest
 // Phase 07 integration coverage for the SAA 2025 Home screen:
 //   - TC_ACC_004 — 403 / access-denied flag routes to AccessDeniedView
 //   - TC_FUN_013 — FAB pencil double-tap pushes the destination exactly once
-//   - TC_FUN_019 — tapping the language picker presents LanguageSelectionSheet
+//   - TC_FUN_019 — tapping the language picker reveals the inline dropdown
 //
 // TC_GUI_005 (Kudos hidden when feature flag is false) is deliberately deferred
 // to a unit-level snapshot test: `FeatureFlags.isKudosAvailable` is a static
@@ -46,10 +46,11 @@ final class HomeIntegrationUITests: XCTestCase {
         )
     }
 
-    // MARK: - TC_FUN_019 — Language modal opens
+    // MARK: - TC_FUN_019 — Language dropdown opens
 
-    /// Tapping the language picker on the Home header presents the language sheet.
-    func testLanguagePickerOpensLanguageSheet() throws {
+    /// Tapping the language picker on the Home header expands the inline
+    /// dropdown panel (shared `LanguagePicker` component from the Login screen).
+    func testLanguagePickerOpensInlineDropdown() throws {
         let app = XCUIApplication.launching(.signedIn)
 
         XCTAssertTrue(
@@ -65,8 +66,8 @@ final class HomeIntegrationUITests: XCTestCase {
         languageButton.tap()
 
         XCTAssertTrue(
-            element("home.language.dismiss", in: app).waitForExistence(timeout: 3),
-            "LanguageSelectionSheet must present its dismiss button after tap"
+            element("languagePicker.row.en", in: app).waitForExistence(timeout: 3),
+            "Inline dropdown must reveal language option rows after tap"
         )
     }
 
