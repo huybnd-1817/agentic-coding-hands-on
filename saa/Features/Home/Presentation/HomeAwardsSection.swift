@@ -16,20 +16,14 @@ struct HomeAwardsSection: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader
+        VStack(alignment: .leading, spacing: 16) {
+            HomeSectionHeader(
+                eyebrowKey: "home.awards.eventLabel",
+                titleKey: "home.awards.sectionTitle"
+            )
 
             stateContent
         }
-    }
-
-    // MARK: - Section header
-
-    private var sectionHeader: some View {
-        Text(LocalizedStringKey("home.awards.sectionTitle"))
-            .font(.system(size: 18, weight: .bold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
     }
 
     // MARK: - State switcher
