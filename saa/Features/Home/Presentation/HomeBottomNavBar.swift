@@ -1,7 +1,16 @@
 import SwiftUI
 
-/// Bottom navigation bar with 4 tabs: SAA 2025 / Awards / Kudos / Profile.
-/// Active tab is highlighted in brand-gold; inactive tabs are dimmed white.
+/// Bottom navigation bar (MoMorph `mms_7_nav bar` — id `6885:9056`).
+///
+/// Solid dark gold-tinted capsule with rounded top corners, hosting 4 tab
+/// buttons. The active tab's icon + label render in brand gold; inactive tabs
+/// use white. Lives at `MainTabView` level so it's shared across all tab
+/// destinations.
+///
+/// The background shape ignores the bottom safe area so the bar reaches the
+/// screen edge instead of floating above the home indicator. The 20pt rounded
+/// corners stay on the top edge; the bottom edge runs straight to the screen
+/// bottom.
 struct HomeBottomNavBar: View {
 
     // MARK: - Inputs
@@ -20,15 +29,19 @@ struct HomeBottomNavBar: View {
                 tabItem(tab)
             }
         }
-        .padding(.top, 10)
-        .padding(.bottom, 4)
-        .background(Color.navBarBackground)
-        .overlay(
-            Rectangle()
-                .fill(Color.navBarBorder)
-                .frame(height: 1),
-            alignment: .top
-        )
+        .padding(.horizontal, 24)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background {
+            UnevenRoundedRectangle(
+                topLeadingRadius: 20,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 20
+            )
+            .fill(Color.navBarSolid)
+            .ignoresSafeArea(.container, edges: .bottom)
+        }
     }
 
     // MARK: - Tab item
@@ -43,9 +56,10 @@ struct HomeBottomNavBar: View {
                 Image(systemName: tab.systemImage)
                     .font(.system(size: 20))
                     .foregroundColor(isSelected ? .navActiveGold : .navInactive)
+                    .frame(width: 24, height: 24)
 
                 Text(tab.rawValue)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundColor(isSelected ? .navActiveGold : .navInactive)
                     .lineLimit(1)
             }
@@ -60,10 +74,14 @@ struct HomeBottomNavBar: View {
 // MARK: - Color tokens
 
 private extension Color {
-    static let navBarBackground = Color(red: 0.02, green: 0.06, blue: 0.10)
-    static let navBarBorder     = Color(red: 153.0/255, green: 140.0/255, blue: 95.0/255).opacity(0.3)
-    static let navActiveGold    = Color(red: 1.0, green: 234.0/255, blue: 158.0/255)
-    static let navInactive      = Color.white.opacity(0.45)
+    /// Solid bar fill — the opaque equivalent of Figma's
+    /// rgba(255, 234, 158, 0.15) blended over the screen's #00101A
+    /// background: ≈ rgb(38, 49, 46) = #26312E.
+    static let navBarSolid   = Color(red: 38.0/255, green: 49.0/255, blue: 46.0/255)
+    /// Figma active label/icon — #FFEA9E.
+    static let navActiveGold = Color(red: 1.0, green: 234.0/255, blue: 158.0/255)
+    /// Figma inactive label — solid white per spec.
+    static let navInactive   = Color.white
 }
 
 // MARK: - Preview
