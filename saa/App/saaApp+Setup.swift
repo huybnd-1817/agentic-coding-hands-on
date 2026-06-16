@@ -46,6 +46,11 @@ extension saaApp {
         case "notAuthorized":
             store.injectState(state: nil, isRestoring: false)
             loginViewModel.injectState(errorMessage: "login.error.notAuthorized")
+        case "accessDenied":
+            // TC_ACC_004 — signed in + access-denied flag → AppRouter shows
+            // AccessDeniedView. The container's awards fetch is skipped because
+            // the route never mounts HomeView in this branch.
+            store.injectState(state: .preview, isRestoring: false, isAccessDenied: true)
         default:
             assertionFailure("Unknown uiTestMode scenario: \(scenario)")
         }

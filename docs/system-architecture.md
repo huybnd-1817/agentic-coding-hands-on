@@ -28,7 +28,7 @@ saa/
 │   ├── Configuration/Environment.swift
 │   ├── Localization/{AppLanguage,LanguagePreference}.swift
 │   ├── Networking/SupabaseClientProvider.swift
-│   └── Session/AuthSessionStore.swift     # session SoT, @EnvironmentObject
+│   └── Session/AuthSessionStore.swift     # session SoT + isAccessDenied flag, @EnvironmentObject
 ├── Features/
 │   ├── Authentication/
 │   │   ├── Domain/
@@ -49,11 +49,32 @@ saa/
 │   │   │   ├── NoopAuthRepository.swift   # DEBUG-only UI-test fake
 │   │   │   └── NoopGoogleSignInService.swift  # DEBUG-only UI-test fake
 │   │   └── Presentation/
-│   │       ├── AppRouter.swift            # spinner / home / login switch
+│   │       ├── AppRouter.swift            # spinner / accessDenied / home / login switch
 │   │       ├── LoginViewContainer.swift
 │   │       ├── LoginView.swift
 │   │       └── LoginViewModel.swift
-│   └── Home/Presentation/HomeView.swift
+│   └── Home/
+│       ├── Domain/
+│       │   ├── Award.swift                # entity
+│       │   ├── AwardsRepositoryProtocol.swift
+│       │   └── AwardsError.swift          # pure enum
+│       ├── Data/
+│       │   ├── SupabaseAwardsRepository.swift
+│       │   ├── AwardMapper.swift
+│       │   └── AwardsErrorMapper.swift
+│       └── Presentation/
+│           ├── MainTabView.swift          # signed-in root; HomeViewContainer on tab 0
+│           ├── HomeViewContainer.swift
+│           ├── HomeView.swift
+│           ├── HomeViewModel.swift
+│           ├── HomeAwardsSection.swift
+│           ├── HomeKudosSection.swift     # feature-flagged via FeatureFlags.isKudosAvailable
+│           ├── AccessDeniedView.swift
+│           ├── AwardsState.swift
+│           ├── FeatureFlags.swift         # compile-time flags; migrate to remote config when needed
+│           ├── Countdown.swift
+│           ├── LanguageSelectionSheet.swift
+│           └── Stubs/                     # placeholder screens for future tabs
 └── Shared/
     ├── Components/{CountryFlag,LanguagePicker}.swift
     └── Extensions/UIApplication+TopViewController.swift
@@ -65,15 +86,21 @@ Tests:
 saaTests/
 ├── Doubles/                               # protocol-driven fakes
 │   ├── AuthRepositoryFake.swift
+│   ├── AwardsRepositoryFake.swift
 │   ├── GoogleSignInServiceFake.swift
 │   └── NonceGeneratorFake.swift
 ├── Domain/
 │   └── SignInWithGoogleUseCaseTests.swift # no SDK, no network
+├── Features/Home/Presentation/
+│   └── LocalizationKeysExistTests.swift
 ├── Presentation/
 │   ├── AuthSessionStoreTests.swift
+│   ├── HomeViewModelTests.swift
 │   └── LoginViewModelTests.swift
 ├── AppRouterRoutingTests.swift
 ├── AuthErrorMappingTests.swift
+├── AwardsErrorMappingTests.swift
+├── CountdownTests.swift
 ├── LoginViewContainerPropsTests.swift
 ├── NonceTests.swift
 └── TestSupport/StubSupabaseClient.swift
