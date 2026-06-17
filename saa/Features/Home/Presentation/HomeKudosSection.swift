@@ -51,20 +51,19 @@ struct HomeKudosSection: View {
     }
 
     // MARK: - Description paragraph
+    //
+    // Single light-weight text per Figma `mms_5_kudos / note / txt`. The
+    // "ĐIỂM MỚI CỦA SAA 2025" eyebrow is the first line of `home.kudos.body`,
+    // separated by `\n` — uppercase + line break already give it visual
+    // emphasis without a bolder font weight.
 
     private var description: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(LocalizedStringKey("home.kudos.bodyTitle"))
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.white)
-
-            Text(LocalizedStringKey("home.kudos.body"))
-                .font(.system(size: 14, weight: .light))
-                .foregroundColor(.white)
-                .lineSpacing(6)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text(LocalizedStringKey("home.kudos.body"))
+            .font(.system(size: 14, weight: .light))
+            .foregroundColor(.white)
+            .lineSpacing(6)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Detail button
