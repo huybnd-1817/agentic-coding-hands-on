@@ -30,13 +30,18 @@ struct HomeHeaderView: View {
             Spacer(minLength: 8)
 
             HStack(spacing: 16) {
-                // Language picker — inline dropdown matching Login screen
+                // Language picker — inline dropdown matching Login screen.
+                // The chip identifier is passed THROUGH the LanguagePicker init
+                // (not via an outer `.accessibilityIdentifier(...)`) because the
+                // outer form propagates the identifier to descendant Buttons
+                // (the dropdown rows), shadowing their `languagePicker.row.*`
+                // identifiers and breaking
+                // `HomeIntegrationUITests.testLanguagePickerOpensInlineDropdown`.
                 LanguagePicker(
                     selectedLanguage: $selectedLanguage,
-                    onLanguageChange: onLanguageChange
+                    onLanguageChange: onLanguageChange,
+                    chipAccessibilityIdentifier: "home.header.language"
                 )
-                .accessibilityIdentifier("home.header.language")
-                .accessibilityLabel(Text(LocalizedStringKey("home.language.title")))
 
                 // Search
                 Button(action: onSearchTap) {

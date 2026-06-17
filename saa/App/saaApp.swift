@@ -50,10 +50,17 @@ struct saaApp: App {
         signOutUseCase = SignOutUseCase(repository: repo, googleService: google, store: store)
         loginViewModel = vm
 
-        // Home feature: Supabase-backed in all builds. UI-test scenarios still
-        // exercise the live wiring against the test runner's network stack —
-        // mock injection happens at the repository level when needed later.
+        // Home feature: Supabase-backed in prod / dev; in-memory mock under
+        // `-uiTestMode` so HomeView reaches `.loaded` on first frame. The
+        // AwardsLoadingView shimmer is a `repeatForever` animation; if it
+        // runs while a URLSession waits on an unreachable Supabase (CI uses
+        // stub xcconfig), the view tree never quiesces and XCUITest taps on
+        // home-header elements race the 3s waitForExistence window.
+        #if DEBUG
+        awardsRepository = (scenarioName != nil) ? MockAwardsRepository() : SupabaseAwardsRepository()
+        #else
         awardsRepository = SupabaseAwardsRepository()
+        #endif
     }
 
     var body: some Scene {

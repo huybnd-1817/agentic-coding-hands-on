@@ -96,9 +96,9 @@ struct LoginView: View {
 
             LanguagePicker(
                 selectedLanguage: $selectedLanguage,
-                onLanguageChange: onLanguageChange
+                onLanguageChange: onLanguageChange,
+                chipAccessibilityIdentifier: "login.languagePicker"
             )
-            .accessibilityIdentifier("login.languagePicker")
             .padding(.top, 4)
         }
     }
