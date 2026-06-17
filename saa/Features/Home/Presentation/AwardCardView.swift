@@ -6,11 +6,11 @@ import SwiftUI
 ///   • Card: 160 × 298, gap 12 between picture / text / button.
 ///   • Picture: 160 × 160 with the Figma `MM_MEDIA_Award BG` image, 0.455
 ///     gold border, 11.429 corner radius, gold-glow + dark drop shadow.
-///     Top Talent + Top Project overlay the Figma name logo PNGs; the other
-///     four awards (no prepared logo in Figma) show the uppercase gold name
-///     as a styled text overlay.
+///     The title inside the picture is rendered as a styled gold label
+///     (text, not image) for all 6 cards — Figma's per-award `MM_MEDIA_*`
+///     PNGs are intentionally not used here.
 ///   • Name (below picture): 14pt Montserrat-equivalent .medium, gold.
-///   • Description: 14pt .light, white, line-height 20pt, capped at 3 lines.
+///   • Description: 14pt .light, white, capped at 3 lines.
 ///   • Per-card "Chi tiết" button (no fill, white label + white arrow) is
 ///     the ONLY tap target — the picture and text are decorative.
 struct AwardCardView: View {
@@ -70,34 +70,17 @@ struct AwardCardView: View {
         .shadow(color: Color.black.opacity(0.25), radius: 1.9, x: 0, y: 1.9)
     }
 
-    /// Award name rendered as gold styled text or, when Figma provides a
-    /// prepared name-logo PNG, as the source asset itself.
-    @ViewBuilder
+    /// Award name rendered as a styled gold label inside the picture.
+    /// One consistent treatment across all 6 codes — per Figma's text style
+    /// for the award title.
     private var namePlate: some View {
-        if let logoAsset = Self.logoAsset(for: award.code) {
-            Image(logoAsset)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 128, maxHeight: 24)
-        } else {
-            Text(award.title(for: locale))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color.awardGold)
-                .textCase(.uppercase)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    /// Maps an award `code` to a prepared Figma logo asset.
-    /// Returns `nil` when no logo PNG exists in the catalogue.
-    private static func logoAsset(for code: String) -> String? {
-        switch code {
-        case "top_talent":  return "award-logo-top-talent"
-        case "top_project": return "award-logo-top-project"
-        default:            return nil
-        }
+        Text(award.title(for: locale))
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(Color.awardGold)
+            .textCase(.uppercase)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - Name + description (Figma `Frame 490`, 160 × 82)
@@ -113,7 +96,7 @@ struct AwardCardView: View {
             Text(award.subtitle(for: locale))
                 .font(.system(size: 14, weight: .light))
                 .foregroundColor(.white)
-                .lineSpacing(6)
+                .lineSpacing(2)
                 .lineLimit(3)
                 .truncationMode(.tail)
                 .fixedSize(horizontal: false, vertical: true)
