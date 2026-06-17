@@ -24,9 +24,16 @@ struct LanguagePicker: View {
         chipButton
             .overlay(alignment: .topTrailing) {
                 if isExpanded {
-                    dropdownPanel
-                        .offset(y: 40)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    // VStack + Color.clear spacer positions the dropdown 40pt
+                    // below the chip while keeping the panel inside the
+                    // overlay's reported frame — SwiftUI `.offset()` would
+                    // translate visuals only and tap hits would land in
+                    // empty space above the rendered rows.
+                    VStack(spacing: 0) {
+                        Color.clear.frame(height: 40)
+                        dropdownPanel
+                    }
+                    .transition(.move(edge: .top))
                 }
             }
     }
