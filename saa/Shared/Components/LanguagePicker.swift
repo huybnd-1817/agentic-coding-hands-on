@@ -53,7 +53,7 @@ struct LanguagePicker: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.white.opacity(0.08))
+            .background(Color.dropdownBackground)
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
