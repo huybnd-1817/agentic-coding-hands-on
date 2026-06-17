@@ -24,6 +24,7 @@
 - `MainTabView` is the signed-in root; `HomeViewContainer` is on tab 0
 - Localizable.xcstrings: 36 keys added (EN + VI) for `home.*`, `accessDenied.*`, `home.stub.*`
 - Countdown component (clamps to zero — event date 2025-12-26 is past)
+- Awards expanded to 6 categories (`top_manager`, `top_mentor` added); `HomeAwardsSection` uses snap-paging carousel with peek on iOS 17, free-scroll fallback on iOS 16
 - 136 tests green (109 unit + 27 UI)
 
 #### Deferred

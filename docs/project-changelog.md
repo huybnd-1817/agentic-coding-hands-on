@@ -4,6 +4,19 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/home] — 2026-06-17 — Awards refinement
+
+### Home Awards: 6 categories + snap-paging carousel
+
+**What changed:**
+- `supabase/seeds/dev/seed-awards.sql` — seed expanded from 4 to 6 awards; added `top_manager` and `top_mentor` categories
+- `HomeMockData.swift` — `previewAwards` fixture updated to match (6 entries)
+- `HomeAwardsSection.swift` — `loadedCardsView` now uses `ScrollView` with `.scrollTargetBehavior(.viewAligned)` snap-paging and a peek offset on iOS 17; falls back to free-scroll on iOS 16
+
+No changes to Domain, Data, ViewModel, or integration layers. No new migrations.
+
+---
+
 ## [feature/home] — 2026-06-16
 
 ### SAA 2025 Home screen

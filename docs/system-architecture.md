@@ -73,7 +73,7 @@ saa/
 │           ├── AwardsState.swift
 │           ├── FeatureFlags.swift         # compile-time flags; migrate to remote config when needed
 │           ├── Countdown.swift
-│           ├── LanguageSelectionSheet.swift
+│           ├── HomeMockData.swift         # preview fixtures (awards + other sections)
 │           └── Stubs/                     # placeholder screens for future tabs
 └── Shared/
     ├── Components/{CountryFlag,LanguagePicker}.swift
