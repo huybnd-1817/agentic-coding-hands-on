@@ -61,6 +61,11 @@ struct HomeView: View {
                     onBellTap: onBellTap,
                     onLanguageChange: onLanguageChange
                 )
+                // Lift header above the sibling ScrollView so the
+                // LanguagePicker's overlay-rendered dropdown panel
+                // (which extends down into the ScrollView's screen
+                // region) wins hit-tests for row taps.
+                .zIndex(1)
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 28) {

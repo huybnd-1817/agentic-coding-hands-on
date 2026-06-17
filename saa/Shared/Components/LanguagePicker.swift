@@ -21,26 +21,24 @@ struct LanguagePicker: View {
     @State private var isExpanded = false
 
     var body: some View {
-        // ZStack with chip + dropdown as siblings — not as overlay children.
-        // `.overlay()` on the chip caps hit-test to the chip's frame
-        // (~75×32), so row taps below the chip fell through to whatever
-        // sibling sat underneath (e.g. the Home ScrollView). A ZStack root
-        // expands to fit both children, giving the dropdown a real
-        // hit-test region at its rendered position.
+        // `.overlay` keeps the picker's layout frame fixed at chip size
+        // (~75×32) in both states, so the parent header HStack does NOT
+        // grow taller when the dropdown opens — the Home ScrollView no
+        // longer gets pushed down (and the Login Spacer absorbs nothing).
         //
-        // `chipButton` is added LAST so it stays visually on top of the
-        // dropdown's invisible 40pt spacer (which overlaps the chip area).
-        ZStack(alignment: .topTrailing) {
-            if isExpanded {
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: 40)
+        // The dropdown is positioned via `.offset(y: 40)` so it renders
+        // ~8pt below the chip without affecting layout. For row taps to
+        // resolve against the dropdown (not the sibling Home ScrollView
+        // it overlaps), the picker's nearest VStack-sibling-bearing
+        // ancestor — `HomeHeaderView` — applies `.zIndex(1)`.
+        chipButton
+            .overlay(alignment: .topTrailing) {
+                if isExpanded {
                     dropdownPanel
+                        .offset(y: 40)
+                        .transition(.opacity)
                 }
-                .transition(.move(edge: .top))
             }
-
-            chipButton
-        }
     }
 
     // MARK: - Chip (collapsed state)
