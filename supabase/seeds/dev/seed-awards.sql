@@ -1,5 +1,5 @@
 -- seed-awards
--- Seeds the four SAA 2025 award categories using copy from the [iOS] Home
+-- Seeds the six SAA 2025 award categories using copy from the [iOS] Home
 -- MoMorph design (screen OuH1BUTYT0). Safe to re-run: upserts on `code`.
 
 insert into public.awards (code, name_en, name_vi, description_en, description_vi, sort_order)
@@ -35,6 +35,22 @@ values
     'Celebrates new joiners who made an exceptional first-year impact.',
     'Tôn vinh những Sunner mới có dấu ấn đặc biệt trong năm đầu tiên.',
     4
+  ),
+  (
+    'top_manager',
+    'Top Manager',
+    'Top Manager',
+    'Recognizes leaders who built outstanding teams and outcomes this year.',
+    'Vinh danh những quản lý xây dựng đội ngũ và kết quả nổi bật trong năm.',
+    5
+  ),
+  (
+    'top_mentor',
+    'Top Mentor',
+    'Top Mentor',
+    'Honors Sunners whose mentorship lifted peers and new joiners alike.',
+    'Tôn vinh những Sunner có đóng góp xuất sắc trong việc dẫn dắt đồng đội.',
+    6
   )
 on conflict (code) do update set
   name_en        = excluded.name_en,

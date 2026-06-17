@@ -50,17 +50,39 @@ struct HomeAwardsSection: View {
     }
 
     // MARK: - Loaded cards
+    //
+    // Snap-paging carousel with peek of the next card.
+    // iOS 17+: `.scrollTargetBehavior(.viewAligned)` snaps each card to the
+    // leading edge; the trailing edge reveals the next card(s) and a peek.
+    // iOS 16: falls back to free horizontal scroll — no regression.
 
+    @ViewBuilder
     private func loadedCardsView(awards: [Award]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(awards) { award in
-                    AwardCardView(award: award) {
-                        onAwardDetail(award.id)
+        if #available(iOS 17.0, *) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(awards) { award in
+                        AwardCardView(award: award) {
+                            onAwardDetail(award.id)
+                        }
                     }
                 }
+                .scrollTargetLayout()
             }
-            .padding(.horizontal, 20)
+            .scrollTargetBehavior(.viewAligned)
+            .contentMargins(.horizontal, 20, for: .scrollContent)
+            .scrollClipDisabled()
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(awards) { award in
+                        AwardCardView(award: award) {
+                            onAwardDetail(award.id)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
         }
     }
 }

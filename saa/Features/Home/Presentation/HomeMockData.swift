@@ -55,6 +55,26 @@ enum HomeMockData {
             thumbnailURL: nil,
             sortOrder: 4
         ),
+        Award(
+            id: UUID(),
+            code: "top_manager",
+            nameEN: "TOP MANAGER",
+            nameVI: "QUẢN LÝ XUẤT SẮC",
+            descriptionEN: "Leaders who built outstanding teams",
+            descriptionVI: "Quản lý xây dựng đội ngũ nổi bật",
+            thumbnailURL: nil,
+            sortOrder: 5
+        ),
+        Award(
+            id: UUID(),
+            code: "top_mentor",
+            nameEN: "TOP MENTOR",
+            nameVI: "NGƯỜI DẪN DẮT",
+            descriptionEN: "Mentorship that lifted peers and new joiners",
+            descriptionVI: "Dẫn dắt đồng đội và Sunner mới",
+            thumbnailURL: nil,
+            sortOrder: 6
+        ),
     ]
 
     static let previewCountdown = Countdown(days: 20, hours: 20, minutes: 20)
