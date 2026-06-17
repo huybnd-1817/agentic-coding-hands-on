@@ -21,21 +21,26 @@ struct LanguagePicker: View {
     @State private var isExpanded = false
 
     var body: some View {
-        chipButton
-            .overlay(alignment: .topTrailing) {
-                if isExpanded {
-                    // VStack + Color.clear spacer positions the dropdown 40pt
-                    // below the chip while keeping the panel inside the
-                    // overlay's reported frame — SwiftUI `.offset()` would
-                    // translate visuals only and tap hits would land in
-                    // empty space above the rendered rows.
-                    VStack(spacing: 0) {
-                        Color.clear.frame(height: 40)
-                        dropdownPanel
-                    }
-                    .transition(.move(edge: .top))
+        // ZStack with chip + dropdown as siblings — not as overlay children.
+        // `.overlay()` on the chip caps hit-test to the chip's frame
+        // (~75×32), so row taps below the chip fell through to whatever
+        // sibling sat underneath (e.g. the Home ScrollView). A ZStack root
+        // expands to fit both children, giving the dropdown a real
+        // hit-test region at its rendered position.
+        //
+        // `chipButton` is added LAST so it stays visually on top of the
+        // dropdown's invisible 40pt spacer (which overlaps the chip area).
+        ZStack(alignment: .topTrailing) {
+            if isExpanded {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 40)
+                    dropdownPanel
                 }
+                .transition(.move(edge: .top))
             }
+
+            chipButton
+        }
     }
 
     // MARK: - Chip (collapsed state)
