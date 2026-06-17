@@ -53,7 +53,7 @@ struct LanguagePicker: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.dropdownBackground)
+            .background(Color.white.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
@@ -74,6 +74,9 @@ struct LanguagePicker: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.dropdownBorder, lineWidth: 1)
         )
+        // Soft drop shadow lifts the #00070C panel off the near-identical
+        // dark page background so it reads as opaque rather than blending in.
+        .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 6)
         .fixedSize()
         .zIndex(10)
     }
