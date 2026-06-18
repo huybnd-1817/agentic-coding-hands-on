@@ -11,6 +11,18 @@ Migrations are applied in ascending numeric-timestamp order (Supabase default be
 | 3 | `20260610145902_sync_profile_on_signup.sql` | AFTER INSERT trigger — syncs Google OAuth metadata into `profiles` |
 | 4 | `20260610145903_profiles_rls.sql` | Enables RLS; read/update policies scoped to the owning user |
 | 5 | `20260611142900_drop_sun_domain_enforcement.sql` | Drops `trg_enforce_sun_domain` and `public.enforce_sun_domain()`; sign-in now open to any Google account |
+| 6 | `20260615161000_create_awards_table.sql` | Creates `public.awards` table + `awards_sort_order_idx` |
+| 7 | `20260615161001_awards_rls.sql` | Enables RLS on `awards`; `authenticated` role gets read-all policy |
+| 8 | `20260616120800_drop_redundant_profiles_email_idx.sql` | Drops redundant `profiles_email_idx` (UNIQUE constraint already auto-indexes `email`) |
+
+## Rollback scripts
+
+Rollback `.sql` files live in `supabase/rollbacks/`, **NOT here**. The Supabase
+CLI processes every `<timestamp>_name.sql` in this directory in lexicographic
+order; placing a `*.rollback.sql` here makes the CLI try to run the rollback
+BEFORE the forward migration (because `.r` sorts before `.s`), which fails
+with `relation does not exist`. Rollbacks are paste-ready scripts to apply
+manually via `psql` or Supabase Studio when reverting.
 
 ## How to apply locally
 

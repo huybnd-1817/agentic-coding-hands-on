@@ -37,6 +37,12 @@ final class AppRouterRoutingTests: XCTestCase {
         return store
     }
 
+    private func makeAccessDeniedStore() -> AuthSessionStore {
+        let store = AuthSessionStore()
+        store.injectState(state: .preview, isRestoring: false, isAccessDenied: true)
+        return store
+    }
+
     // MARK: - Test cases
 
     /// While `isRestoring == true`, AppRouter must take the spinner branch.
@@ -66,6 +72,45 @@ final class AppRouterRoutingTests: XCTestCase {
             AppRouter.activeRoute(for: store),
             .login,
             "Expected .login route when state == nil && !isRestoring"
+        )
+    }
+
+    /// When a signed-in session is flagged as access-denied (TC_ACC_004 — 403
+    /// from awards API), AppRouter must short-circuit Home and mount the
+    /// AccessDenied screen. The flag check sits AFTER `isRestoring` and BEFORE
+    /// the `.home` branch in `activeRoute(for:)`.
+    func testRouterShowsAccessDeniedWhenFlagSet() async {
+        let store = makeAccessDeniedStore()
+        XCTAssertEqual(
+            AppRouter.activeRoute(for: store),
+            .accessDenied,
+            "Expected .accessDenied route when isAccessDenied == true && signed in"
+        )
+    }
+
+    /// `isAccessDenied` alone (without a session) must NOT route to AccessDenied —
+    /// the user is already signed out and belongs on Login. This prevents a
+    /// stale flag from trapping a fresh visitor on the Access Denied screen.
+    func testRouterIgnoresAccessDeniedWhenSignedOut() async {
+        let store = AuthSessionStore()
+        store.injectState(state: nil, isRestoring: false, isAccessDenied: true)
+        XCTAssertEqual(
+            AppRouter.activeRoute(for: store),
+            .login,
+            "Expected .login route when state == nil even if isAccessDenied == true"
+        )
+    }
+
+    /// `clear()` must reset `isAccessDenied` so a subsequent sign-in lands on
+    /// Home, not Access Denied.
+    func testStoreClearResetsAccessDeniedFlag() async {
+        let store = makeAccessDeniedStore()
+        store.clear()
+        XCTAssertFalse(store.isAccessDenied, "clear() must reset isAccessDenied")
+        XCTAssertEqual(
+            AppRouter.activeRoute(for: store),
+            .login,
+            "Expected .login after clear()"
         )
     }
 }

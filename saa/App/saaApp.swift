@@ -11,6 +11,10 @@ struct saaApp: App {
     private let signOutUseCase: SignOutUseCase
     private let loginViewModel: LoginViewModel
 
+    // Home feature graph
+    private let awardsRepository: any AwardsRepositoryProtocol
+    private let notificationStore = NotificationStubStore()
+
     init() {
         Self.configureGoogleSignIn()
 
@@ -45,13 +49,28 @@ struct saaApp: App {
         restoreUseCase = RestoreSessionUseCase(repository: repo)
         signOutUseCase = SignOutUseCase(repository: repo, googleService: google, store: store)
         loginViewModel = vm
+
+        // Home feature: Supabase-backed in prod / dev; in-memory mock under
+        // `-uiTestMode` so HomeView reaches `.loaded` on first frame. The
+        // AwardsLoadingView shimmer is a `repeatForever` animation; if it
+        // runs while a URLSession waits on an unreachable Supabase (CI uses
+        // stub xcconfig), the view tree never quiesces and XCUITest taps on
+        // home-header elements race the 3s waitForExistence window.
+        #if DEBUG
+        awardsRepository = (scenarioName != nil)
+            ? MockAwardsRepository(behavior: Self.awardsBehavior(for: scenarioName))
+            : SupabaseAwardsRepository()
+        #else
+        awardsRepository = SupabaseAwardsRepository()
+        #endif
     }
 
     var body: some Scene {
         WindowGroup {
             AppRouter(
                 loginViewModel: loginViewModel,
-                signOutUseCase: signOutUseCase
+                signOutUseCase: signOutUseCase,
+                makeHomeRoot: makeHomeRoot
             )
             .environmentObject(authSession)
             .environmentObject(languagePreference)
@@ -66,5 +85,20 @@ struct saaApp: App {
             }
             .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
         }
+    }
+
+    // MARK: - Home composition
+
+    /// Builds the Home tab root. Returns an `AnyView` so `AppRouter` stays
+    /// view-type-agnostic and only depends on the closure shape.
+    private func makeHomeRoot() -> AnyView {
+        let container = HomeViewContainer(
+            viewModel: HomeViewModel(
+                repository: awardsRepository,
+                notificationStore: notificationStore
+            ),
+            signOutUseCase: signOutUseCase
+        )
+        return AnyView(MainTabView(home: container))
     }
 }

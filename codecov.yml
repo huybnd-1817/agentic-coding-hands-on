@@ -37,3 +37,8 @@ ignore:
   - "saa.xcodeproj/"
   - "**/SourcePackages/**"
   - "**/DerivedData/**"
+  # Placeholder nav targets — three-line `Text("Stub")` views that exist only
+  # to give the bottom-nav tabs a destination until the real screens land.
+  # Counting them as uncovered penalises the patch for code that is, by
+  # design, a placeholder.
+  - "saa/Features/Home/Presentation/Stubs/**"

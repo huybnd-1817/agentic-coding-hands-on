@@ -16,6 +16,12 @@ enum UITestScenario: String {
     case loading
     case networkError
     case notAuthorized
+    /// Signed-in + `isAccessDenied = true` — AppRouter mounts AccessDeniedView (TC_ACC_004).
+    case accessDenied
+    /// Signed-in + awards repo throws — `HomeAwardsSection` shows `AwardsErrorView`.
+    case awardsError
+    /// Signed-in + awards repo returns `[]` — `HomeAwardsSection` shows `AwardsEmptyView`.
+    case awardsEmpty
 }
 
 // MARK: - XCUIApplication factory

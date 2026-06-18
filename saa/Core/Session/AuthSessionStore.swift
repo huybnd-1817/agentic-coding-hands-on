@@ -20,22 +20,32 @@ final class AuthSessionStore: ObservableObject {
     /// Drives the spinner gate in `AppRouter` (TC_LOGIN_ACC_002 / TC_LOGIN_FUN_012).
     @Published private(set) var isRestoring: Bool = true
 
+    /// `true` after the Home data layer surfaces a 403. Drives the `.accessDenied`
+    /// branch in `AppRouter` (TC_ACC_004).
+    @Published private(set) var isAccessDenied: Bool = false
+
     // MARK: - Mutations (called only by use cases and composition root)
 
     func setRestoring(_ value: Bool) { isRestoring = value }
     func setState(_ value: UserSession?) { state = value }
+    func setAccessDenied(_ value: Bool) { isAccessDenied = value }
 
     /// Clears the session, returning the router to the login branch.
-    func clear() { state = nil }
+    /// Also resets `isAccessDenied` so a fresh sign-in starts clean.
+    func clear() {
+        state = nil
+        isAccessDenied = false
+    }
 
     // MARK: - DEBUG
 
     #if DEBUG
     /// Pre-populates observable state for SwiftUI Previews and UI-test launch-arg injection.
     /// Not available in release builds — the entire block is stripped by the compiler.
-    func injectState(state: UserSession? = nil, isRestoring: Bool = false) {
+    func injectState(state: UserSession? = nil, isRestoring: Bool = false, isAccessDenied: Bool = false) {
         self.state = state
         self.isRestoring = isRestoring
+        self.isAccessDenied = isAccessDenied
     }
     #endif
 }

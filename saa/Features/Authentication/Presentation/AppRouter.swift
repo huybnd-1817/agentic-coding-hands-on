@@ -12,6 +12,7 @@ enum AppRoute: Equatable {
     case spinner
     case home
     case login
+    case accessDenied
 }
 
 // MARK: - AppRouter
@@ -36,11 +37,17 @@ struct AppRouter: View {
     let loginViewModel: LoginViewModel
     let signOutUseCase: SignOutUseCase
 
+    /// Factory for the Home view. Closures keep AppRouter ignorant of the
+    /// Home dependency graph (HomeViewModel + AwardsRepository + stub stores).
+    /// Returns the full MainTabView with HomeViewContainer on tab 0.
+    let makeHomeRoot: () -> AnyView
+
     /// Pure mapping from `AuthSessionStore` state → which branch `body` will mount.
     /// Single source of truth for routing — tests assert against this same
     /// expression rather than reimplementing the guard order.
     static func activeRoute(for store: AuthSessionStore) -> AppRoute {
         if store.isRestoring { return .spinner }
+        if store.isAccessDenied && store.state != nil { return .accessDenied }
         if store.state != nil { return .home }
         return .login
     }
@@ -53,15 +60,19 @@ struct AppRouter: View {
                     .progressViewStyle(.circular)
                     .accessibilityIdentifier("router.spinner")
             case .home:
-                HomeView(signOutUseCase: signOutUseCase)
+                makeHomeRoot()
                     .accessibilityIdentifier("router.home")
             case .login:
                 LoginViewContainer(viewModel: loginViewModel)
                     .accessibilityIdentifier("router.login")
+            case .accessDenied:
+                AccessDeniedView(signOutUseCase: signOutUseCase)
+                    .accessibilityIdentifier("router.accessDenied")
             }
         }
         .animation(.easeInOut(duration: 0.25), value: authSession.state?.userID)
         .animation(.easeInOut(duration: 0.25), value: authSession.isRestoring)
+        .animation(.easeInOut(duration: 0.25), value: authSession.isAccessDenied)
     }
 }
 
@@ -78,7 +89,11 @@ struct AppRouter: View {
         signInUseCase: SignInWithGoogleUseCase(
             repository: repo, googleService: google, nonceGenerator: Nonce.default),
         store: store)
-    return AppRouter(loginViewModel: vm, signOutUseCase: signOutUseCase)
+    return AppRouter(
+        loginViewModel: vm,
+        signOutUseCase: signOutUseCase,
+        makeHomeRoot: { AnyView(Text("Home placeholder").accessibilityIdentifier("home.root")) }
+    )
     .environmentObject(store)
     .environmentObject(LanguagePreference())
 }
@@ -93,7 +108,11 @@ struct AppRouter: View {
         signInUseCase: SignInWithGoogleUseCase(
             repository: repo, googleService: google, nonceGenerator: Nonce.default),
         store: store)
-    return AppRouter(loginViewModel: vm, signOutUseCase: signOutUseCase)
+    return AppRouter(
+        loginViewModel: vm,
+        signOutUseCase: signOutUseCase,
+        makeHomeRoot: { AnyView(Text("Home placeholder").accessibilityIdentifier("home.root")) }
+    )
     .environmentObject(store)
     .environmentObject(LanguagePreference())
 }
@@ -108,7 +127,11 @@ struct AppRouter: View {
         signInUseCase: SignInWithGoogleUseCase(
             repository: repo, googleService: google, nonceGenerator: Nonce.default),
         store: store)
-    return AppRouter(loginViewModel: vm, signOutUseCase: signOutUseCase)
+    return AppRouter(
+        loginViewModel: vm,
+        signOutUseCase: signOutUseCase,
+        makeHomeRoot: { AnyView(Text("Home placeholder").accessibilityIdentifier("home.root")) }
+    )
     .environmentObject(store)
     .environmentObject(LanguagePreference())
 }

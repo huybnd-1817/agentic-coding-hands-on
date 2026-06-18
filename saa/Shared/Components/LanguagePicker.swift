@@ -18,15 +18,55 @@ struct LanguagePicker: View {
 
     let onLanguageChange: (AppLanguage) -> Void
 
+    /// Identifier applied DIRECTLY to the chip Button (not to the composite
+    /// LanguagePicker view). Applying it externally — i.e. on the call site
+    /// via `LanguagePicker(...).accessibilityIdentifier(...)` — causes SwiftUI
+    /// to propagate the identifier to descendant Buttons (including the
+    /// dropdown rows), which overrides the `languagePicker.row.<lang>`
+    /// identifiers set inside `dropdownRow(for:)`. The test
+    /// `HomeIntegrationUITests.testLanguagePickerOpensInlineDropdown` queries
+    /// rows by their `languagePicker.row.en` identifier and fails if that
+    /// identifier is shadowed by the chip's identifier.
+    let chipAccessibilityIdentifier: String?
+
     @State private var isExpanded = false
 
+    init(
+        selectedLanguage: Binding<AppLanguage>,
+        onLanguageChange: @escaping (AppLanguage) -> Void,
+        chipAccessibilityIdentifier: String? = nil
+    ) {
+        self._selectedLanguage = selectedLanguage
+        self.onLanguageChange = onLanguageChange
+        self.chipAccessibilityIdentifier = chipAccessibilityIdentifier
+    }
+
     var body: some View {
+        // `.overlay` keeps the picker's layout frame fixed at chip size
+        // (~75×32) in both states, so the parent header HStack does NOT
+        // grow taller when the dropdown opens — the Home ScrollView no
+        // longer gets pushed down (and the Login Spacer absorbs nothing).
+        //
+        // The dropdown is positioned via a VStack + invisible 40pt spacer
+        // (NOT `.offset(y: 40)`): `.offset` shifts visuals only, leaving
+        // the dropdown's accessibility frame at the chip's bounds — which
+        // hides the row Buttons from XCUITest queries by identifier and
+        // causes `HomeIntegrationUITests.testLanguagePickerOpensInlineDropdown`
+        // to fail with "Inline dropdown must reveal language option rows
+        // after tap." A layout-driven spacer keeps the rows' frames at the
+        // rendered position so accessibility matches the visual.
+        //
+        // For human row taps (which DO resolve by hit-coordinate) to land
+        // on the dropdown — and not on the sibling Home ScrollView the
+        // dropdown overlaps — `HomeHeaderView` applies `.zIndex(1)`.
         chipButton
             .overlay(alignment: .topTrailing) {
                 if isExpanded {
-                    dropdownPanel
-                        .offset(y: 40)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    VStack(spacing: 0) {
+                        Color.clear.frame(height: 40)
+                        dropdownPanel
+                    }
+                    .transition(.opacity)
                 }
             }
     }
@@ -57,6 +97,7 @@ struct LanguagePicker: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
+        .modifier(OptionalAccessibilityIdentifier(id: chipAccessibilityIdentifier))
     }
 
     // MARK: - Dropdown panel (expanded state)
@@ -74,6 +115,9 @@ struct LanguagePicker: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.dropdownBorder, lineWidth: 1)
         )
+        // Soft drop shadow lifts the #00070C panel off the near-identical
+        // dark page background so it reads as opaque rather than blending in.
+        .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: 6)
         .fixedSize()
         .zIndex(10)
     }
@@ -101,12 +145,30 @@ struct LanguagePicker: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("languagePicker.row.\(language.rawValue)")
     }
 
     // MARK: - Private helpers
 
     private func flagIcon(for language: AppLanguage) -> some View {
         CountryFlag(language: language)
+    }
+}
+
+// MARK: - View modifier helper
+
+/// Applies `.accessibilityIdentifier` only when an identifier is provided.
+/// Necessary because passing `""` would still register an empty identifier
+/// and could interact unexpectedly with descendant identifier resolution.
+private struct OptionalAccessibilityIdentifier: ViewModifier {
+    let id: String?
+
+    func body(content: Content) -> some View {
+        if let id, !id.isEmpty {
+            content.accessibilityIdentifier(id)
+        } else {
+            content
+        }
     }
 }
 
