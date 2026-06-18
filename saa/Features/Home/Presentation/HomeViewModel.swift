@@ -49,27 +49,33 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: - Init
 
+    /// Default parameters are `nil` rather than `FeatureFlags.*` because the
+    /// target sets `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Default-arg
+    /// expressions are evaluated in the **caller's** isolation, not the
+    /// init's; a non-MainActor caller would hit "Main actor-isolated static
+    /// property … referenced from a nonisolated context". Resolving inside
+    /// the init body keeps the reads on MainActor where they belong.
     init(
         repository: any AwardsRepositoryProtocol,
         notificationStore: NotificationStubStore,
-        isKudosAvailable: Bool = FeatureFlags.isKudosAvailable,
-        eventDate: Date = FeatureFlags.eventDate,
-        venueName: String = FeatureFlags.venueName,
+        isKudosAvailable: Bool? = nil,
+        eventDate: Date? = nil,
+        venueName: String? = nil,
         clock: @escaping () -> Date = { Date() }
     ) {
         self.repository = repository
         self.notificationStore = notificationStore
-        self.isKudosAvailable = isKudosAvailable
-        self.eventDate = eventDate
-        self.venueName = venueName
+        self.isKudosAvailable = isKudosAvailable ?? FeatureFlags.isKudosAvailable
+        self.eventDate = eventDate ?? FeatureFlags.eventDate
+        self.venueName = venueName ?? FeatureFlags.venueName
         self.clock = clock
-        self.countdown = Countdown.until(eventDate, from: clock())
+        self.countdown = Countdown.until(self.eventDate, from: clock())
         self.unreadCount = notificationStore.unreadCount
 
         let formatter = DateFormatter()
         formatter.dateFormat = "dd/MM/yyyy"
         formatter.timeZone = TimeZone(identifier: "Asia/Saigon")
-        self.eventDateText = formatter.string(from: eventDate)
+        self.eventDateText = formatter.string(from: self.eventDate)
 
         notificationCancellable = notificationStore.$unreadCount
             .receive(on: RunLoop.main)

@@ -6,6 +6,13 @@ import Foundation
 ///
 /// Per clarification 2026-06-15 Q4: flag values are constants for now.
 /// Migrate to remote config (Supabase row, `app_config`) when business needs it.
+///
+/// Inherits MainActor isolation from the target's `SWIFT_DEFAULT_ACTOR_ISOLATION`
+/// setting. Callers must already be on MainActor to read these — which is fine,
+/// since every consumer is a SwiftUI view, `@MainActor` view model, or `@main`
+/// app entry. `HomeViewModel.init` resolves the defaults inside its body so the
+/// reads stay inside its MainActor isolation (not at the caller's default-arg
+/// evaluation site).
 enum FeatureFlags {
 
     /// Controls full visibility of the Kudos section on Home (TC_GUI_005,
