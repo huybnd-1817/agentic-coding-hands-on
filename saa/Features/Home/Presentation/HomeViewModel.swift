@@ -10,8 +10,10 @@ import Combine
 ///   - `countdown` — recomputed every second while the timer is running.
 ///   - `unreadCount` — mirror of `NotificationStubStore.unreadCount`.
 ///
-/// `isKudosAvailable` is captured as a constant (not published) because the
-/// FeatureFlag is compile-time.
+/// `isKudosAvailable` is captured as a `let` (not `@Published`) because it's
+/// resolved once at init: defaults to `FeatureFlags.isKudosAvailable`, with
+/// explicit overrides allowed for tests and previews. See init doc for why
+/// the parameter is `Bool?` rather than `Bool`.
 ///
 /// Routing concerns (401 → sign-out, 403 → AccessDenied) are intentionally
 /// **NOT** in this VM — `HomeViewContainer` observes `state` and dispatches
