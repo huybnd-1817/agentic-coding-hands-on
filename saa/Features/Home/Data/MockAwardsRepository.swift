@@ -18,19 +18,42 @@ import Foundation
 /// which races the 3s `waitForExistence` window in HomeIntegrationUITests
 /// (`testLanguagePickerOpensInlineDropdown` in particular).
 struct MockAwardsRepository: AwardsRepositoryProtocol {
+
+    /// Drives `fetchAwards()` so UI tests can exercise loaded / empty / error
+    /// branches without standing up a network stub. The XCUITest layer picks
+    /// the behavior via the `-uiTestMode` launch argument.
+    enum Behavior {
+        case happy
+        case empty
+        case error
+    }
+
+    let behavior: Behavior
+
+    init(behavior: Behavior = .happy) {
+        self.behavior = behavior
+    }
+
     func fetchAwards() async throws -> [Award] {
-        [
-            Award(
-                id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-                code: "top_talent",
-                nameEN: "TOP TALENT",
-                nameVI: "TOP TALENT",
-                descriptionEN: "All-rounded outstanding individuals",
-                descriptionVI: "Cá nhân xuất sắc toàn diện",
-                thumbnailURL: nil,
-                sortOrder: 1
-            )
-        ]
+        switch behavior {
+        case .happy:
+            return [
+                Award(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                    code: "top_talent",
+                    nameEN: "TOP TALENT",
+                    nameVI: "TOP TALENT",
+                    descriptionEN: "All-rounded outstanding individuals",
+                    descriptionVI: "Cá nhân xuất sắc toàn diện",
+                    thumbnailURL: nil,
+                    sortOrder: 1
+                )
+            ]
+        case .empty:
+            return []
+        case .error:
+            throw AwardsError.network
+        }
     }
 }
 #endif

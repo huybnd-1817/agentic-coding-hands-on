@@ -17,6 +17,8 @@ struct AwardsEmptyView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .padding(.horizontal, 20)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home.awards.emptyView")
     }
 }
 

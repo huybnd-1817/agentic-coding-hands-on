@@ -38,6 +38,11 @@ struct AwardsErrorView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .padding(.horizontal, 20)
+        // children: .contain keeps the inner Retry button reachable by XCUITest.
+        // Without it, applying the identifier on the container collapses the
+        // subtree into a single element and `home.awards.retry` disappears.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home.awards.errorView")
     }
 }
 

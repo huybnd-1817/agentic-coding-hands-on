@@ -57,7 +57,9 @@ struct saaApp: App {
         // stub xcconfig), the view tree never quiesces and XCUITest taps on
         // home-header elements race the 3s waitForExistence window.
         #if DEBUG
-        awardsRepository = (scenarioName != nil) ? MockAwardsRepository() : SupabaseAwardsRepository()
+        awardsRepository = (scenarioName != nil)
+            ? MockAwardsRepository(behavior: Self.awardsBehavior(for: scenarioName))
+            : SupabaseAwardsRepository()
         #else
         awardsRepository = SupabaseAwardsRepository()
         #endif

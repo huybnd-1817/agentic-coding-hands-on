@@ -110,4 +110,45 @@ final class HomeIntegrationUITests: XCTestCase {
         )
         XCTAssertTrue(pencil.isHittable, "Pencil FAB must be hittable after popping back")
     }
+
+    // MARK: - Awards error + empty states
+
+    /// `MockAwardsRepository(behavior: .error)` → `HomeAwardsSection` renders
+    /// `AwardsErrorView` with a Retry button. Verifies the error branch of the
+    /// awards state-machine and the surface that surfaces it.
+    func testAwardsErrorScenarioShowsErrorView() throws {
+        let app = XCUIApplication.launching(.awardsError)
+
+        XCTAssertTrue(
+            element("home.root", in: app).waitForExistence(timeout: 5),
+            "Home must mount under awardsError scenario"
+        )
+        XCTAssertTrue(
+            element("home.awards.errorView", in: app).waitForExistence(timeout: 5),
+            "AwardsErrorView must render when the repo throws"
+        )
+        XCTAssertTrue(
+            element("home.awards.retry", in: app).waitForExistence(timeout: 3),
+            "Retry button must exist inside AwardsErrorView"
+        )
+    }
+
+    /// `MockAwardsRepository(behavior: .empty)` → `HomeAwardsSection` renders
+    /// `AwardsEmptyView`. No retry button — empty is a terminal happy-path state.
+    func testAwardsEmptyScenarioShowsEmptyView() throws {
+        let app = XCUIApplication.launching(.awardsEmpty)
+
+        XCTAssertTrue(
+            element("home.root", in: app).waitForExistence(timeout: 5),
+            "Home must mount under awardsEmpty scenario"
+        )
+        XCTAssertTrue(
+            element("home.awards.emptyView", in: app).waitForExistence(timeout: 5),
+            "AwardsEmptyView must render when the repo returns []"
+        )
+        XCTAssertFalse(
+            element("home.awards.errorView", in: app).exists,
+            "AwardsErrorView must not be present in the empty scenario"
+        )
+    }
 }
