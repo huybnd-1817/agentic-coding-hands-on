@@ -1,0 +1,188 @@
+import Foundation
+@testable import saa
+
+// MARK: - KudosRepositoryFake
+//
+// Configurable in-memory fake implementing `KudosRepositoryProtocol`.
+// Per-call behavior (success / error), call counter.
+//
+// @unchecked Sendable: test doubles mutate properties from the test thread
+// without synchronisation — intentional for ergonomics; never used in
+// production code. Mirrors the convention from AwardsRepositoryFake.
+
+final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
+
+    enum HighlightBehavior {
+        case success([Kudos])
+        case error(KudosError)
+    }
+
+    enum FeedBehavior {
+        case success([Kudos])
+        case error(KudosError)
+    }
+
+    enum HashtagsBehavior {
+        case success([Hashtag])
+        case error(KudosError)
+    }
+
+    enum DepartmentsBehavior {
+        case success([Department])
+        case error(KudosError)
+    }
+
+    enum StatsBehavior {
+        case success(UserStats)
+        case error(KudosError)
+    }
+
+    enum RecipientsBehavior {
+        case success([KudosAuthor])
+        case error(KudosError)
+    }
+
+    enum BonusBehavior {
+        case success(EventBonus?)
+        case error(KudosError)
+    }
+
+    enum LikeBehavior {
+        case success(Bool)
+        case error(KudosError)
+    }
+
+    enum UnlikeBehavior {
+        case success(Bool)
+        case error(KudosError)
+    }
+
+    // MARK: - Per-method behaviors
+
+    var highlightBehavior: HighlightBehavior = .success([])
+    var feedBehavior: FeedBehavior = .success([])
+    var hashtagsBehavior: HashtagsBehavior = .success([])
+    var departmentsBehavior: DepartmentsBehavior = .success([])
+    var statsBehavior: StatsBehavior = .success(.zero)
+    var recipientsBehavior: RecipientsBehavior = .success([])
+    var bonusBehavior: BonusBehavior = .success(nil)
+    var likeBehavior: LikeBehavior = .success(true)
+    var unlikeBehavior: UnlikeBehavior = .success(false)
+
+    // MARK: - Call counters
+
+    private(set) var fetchHighlightCalls = 0
+    private(set) var fetchFeedCalls = 0
+    private(set) var fetchHashtagsCalls = 0
+    private(set) var fetchDepartmentsCalls = 0
+    private(set) var fetchStatsCalls = 0
+    private(set) var fetchRecipientsCalls = 0
+    private(set) var fetchBonusCalls = 0
+    private(set) var likeCalls = 0
+    private(set) var unlikeCalls = 0
+    private(set) var currentUserIdCalls = 0
+
+    // MARK: - Last-arg recording
+
+    var lastHighlightFilter: KudosFilter?
+    var lastFeedFilter: KudosFilter?
+    var lastFeedPage: Int?
+    var lastFeedPageSize: Int?
+    var lastLikeKudosId: KudosID?
+    var lastLikeMultiplier: Int?
+    var lastUnlikeKudosId: KudosID?
+    var lastBonusNow: Date?
+    var lastRecipientLimit: Int?
+
+    // MARK: - Current user simulation
+
+    var _currentUserId: UUID? = nil
+
+    // MARK: - Protocol conformance
+
+    func fetchHighlightKudos(filter: KudosFilter) async throws -> [Kudos] {
+        fetchHighlightCalls += 1
+        lastHighlightFilter = filter
+        switch highlightBehavior {
+        case .success(let kudos): return kudos
+        case .error(let error): throw error
+        }
+    }
+
+    func fetchKudosFeed(filter: KudosFilter, page: Int, pageSize: Int) async throws -> [Kudos] {
+        fetchFeedCalls += 1
+        lastFeedFilter = filter
+        lastFeedPage = page
+        lastFeedPageSize = pageSize
+        switch feedBehavior {
+        case .success(let kudos): return kudos
+        case .error(let error): throw error
+        }
+    }
+
+    func fetchHashtags() async throws -> [Hashtag] {
+        fetchHashtagsCalls += 1
+        switch hashtagsBehavior {
+        case .success(let hashtags): return hashtags
+        case .error(let error): throw error
+        }
+    }
+
+    func fetchDepartments() async throws -> [Department] {
+        fetchDepartmentsCalls += 1
+        switch departmentsBehavior {
+        case .success(let departments): return departments
+        case .error(let error): throw error
+        }
+    }
+
+    func fetchMyStats() async throws -> UserStats {
+        fetchStatsCalls += 1
+        switch statsBehavior {
+        case .success(let stats): return stats
+        case .error(let error): throw error
+        }
+    }
+
+    func fetchTopGiftRecipients(limit: Int) async throws -> [KudosAuthor] {
+        fetchRecipientsCalls += 1
+        lastRecipientLimit = limit
+        switch recipientsBehavior {
+        case .success(let authors): return authors
+        case .error(let error): throw error
+        }
+    }
+
+    func fetchActiveEventBonus(now: Date) async throws -> EventBonus? {
+        fetchBonusCalls += 1
+        lastBonusNow = now
+        switch bonusBehavior {
+        case .success(let bonus): return bonus
+        case .error(let error): throw error
+        }
+    }
+
+    func likeKudos(kudosId: KudosID, multiplier: Int) async throws -> Bool {
+        likeCalls += 1
+        lastLikeKudosId = kudosId
+        lastLikeMultiplier = multiplier
+        switch likeBehavior {
+        case .success(let result): return result
+        case .error(let error): throw error
+        }
+    }
+
+    func unlikeKudos(kudosId: KudosID) async throws -> Bool {
+        unlikeCalls += 1
+        lastUnlikeKudosId = kudosId
+        switch unlikeBehavior {
+        case .success(let result): return result
+        case .error(let error): throw error
+        }
+    }
+
+    func currentUserId() async -> UUID? {
+        currentUserIdCalls += 1
+        return _currentUserId
+    }
+}
