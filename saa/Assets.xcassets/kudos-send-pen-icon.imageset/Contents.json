@@ -1,0 +1,15 @@
+{
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "images": [
+    {
+      "filename": "kudos-send-pen-icon.svg",
+      "idiom": "universal"
+    }
+  ],
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}
