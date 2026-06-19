@@ -4,6 +4,32 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/kudos] — 2026-06-19
+
+### Sun*Kudos feature
+
+**Plan:** [`plans/260618-1313-kudos-screen-saa-2025/`](../plans/260618-1313-kudos-screen-saa-2025/plan.md)
+
+**What shipped:**
+- Full feature-sliced Kudos module (`Domain` / `Data` / `Presentation`) under `saa/Features/Kudos/`
+- Domain: `Kudos`, `KudosUser`, `Department`, `Hashtag`, `KudosReaction`, `UserStats` entities; `KudosRepositoryProtocol`; `KudosError` pure enum
+- Data: `SupabaseKudosRepository`, mappers, `KudosErrorMapper`
+- Presentation: `KudosViewContainer`, `KudosViewModel` (`@MainActor` `ObservableObject`), all Kudos screens
+- `MainTabView` mounts real `KudosViewContainer` (replaces `KudosTabStubView`); cross-tab nav from `HomeView.onKudosDetail` → `HomeViewContainer.activeTab = .kudos`
+- Composition root split: `saaApp+KudosSetup.swift` + `saaApp+HomeSetup.swift` to keep each ≤ 80 LOC
+
+**Database (9 migrations):**
+- 7 new tables: `departments`, `hashtags`, `kudos`, `kudos_hashtags`, `kudos_reactions`, `user_stats`, `event_bonuses`
+- `profiles` altered: `department_id` foreign key added
+- All 7 tables RLS-protected (SELECT to `authenticated`; writes `service_role` only; `user_stats` SELECT restricted to row owner)
+- 3 PL/pgSQL triggers: profile→user_stats bootstrap, kudos insert→sent/received counts, kudos_reactions↔sender hearts
+
+**Localization:** 34 `kudos.*` keys added to `Localizable.xcstrings` (EN + VI)
+
+**Tests:** 227 passing across all suites; new files under `saaTests/Features/Kudos/Domain|Data|Presentation/` + 2 new doubles in `saaTests/Doubles/`
+
+---
+
 ## [feature/home] — 2026-06-17 — Awards refinement
 
 ### Home Awards: 6 categories + snap-paging carousel
