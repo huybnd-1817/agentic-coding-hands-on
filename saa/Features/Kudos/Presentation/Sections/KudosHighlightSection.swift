@@ -47,7 +47,13 @@ struct KudosHighlightSection: View {
     private let cardWidth: CGFloat        = 273
     private let cardSpacing: CGFloat      = 16
     private let horizontalMargin: CGFloat = 51
-    private let chipWidth: CGFloat        = 129
+    /// Figma chips are 129pt (nodes 6885:9088 / 6885:9089), sized for the
+    /// Vietnamese label "Phòng ban". The English label "Department" requires
+    /// ~128pt of content alone (text 82pt + chevron 24pt + h-padding 16pt +
+    /// gap 4pt), leaving no breathing room and forcing ellipsis. Widening to
+    /// 145pt keeps both chips symmetric and still fits comfortably in the
+    /// 375pt canvas alongside the 8pt gap and 20pt side margins.
+    private let chipWidth: CGFloat        = 145
     private let sideButtonWidth: CGFloat  = 79
 
     // MARK: - Body
@@ -69,8 +75,8 @@ struct KudosHighlightSection: View {
     private var headerAndFilters: some View {
         VStack(alignment: .leading, spacing: 16) {
             KudosSectionHeader(
-                subtitle: String(localized: "kudos.section.subtitle"),
-                title: String(localized: "kudos.section.highlight")
+                subtitle: "kudos.section.subtitle",
+                title: "kudos.section.highlight"
             )
             .padding(.horizontal, 20)
 
@@ -94,7 +100,8 @@ struct KudosHighlightSection: View {
 
     private var hashtagChipWithDropdown: some View {
         KudosFilterChip(
-            label: String(localized: "kudos.filter.hashtag"),
+            label: "kudos.filter.hashtag",
+            identifierKey: "hashtag",
             selectedValue: selectedHashtag?.label,
             onTap: { isHashtagSheetPresented.toggle() }
         )
@@ -119,7 +126,8 @@ struct KudosHighlightSection: View {
 
     private var departmentChipWithDropdown: some View {
         KudosFilterChip(
-            label: String(localized: "kudos.filter.department"),
+            label: "kudos.filter.department",
+            identifierKey: "department",
             selectedValue: selectedDepartment?.label,
             onTap: { isDepartmentSheetPresented.toggle() }
         )

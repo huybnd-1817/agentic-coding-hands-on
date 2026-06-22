@@ -96,6 +96,14 @@ final class KudosLocalizationKeysExistTests: XCTestCase {
     func testRecipientsEmpty() { assertKeyExists("kudos.recipients.empty") }
     func testRecipientsTitle() { assertKeyExists("kudos.recipients.title") }
     func testRecipientsRowReceivedItem() { assertKeyExists("kudos.recipients.row.receivedItem") }
+    func testRecipientsRewardSaaShirt() { assertKeyExists("kudos.recipients.reward.saaShirt") }
+
+    // MARK: - kudos.starTier.*
+
+    func testStarTierZero() { assertKeyExists("kudos.starTier.zero") }
+    func testStarTierOne() { assertKeyExists("kudos.starTier.one") }
+    func testStarTierTwo() { assertKeyExists("kudos.starTier.two") }
+    func testStarTierThree() { assertKeyExists("kudos.starTier.three") }
 
     // MARK: - kudos.stats.*
 

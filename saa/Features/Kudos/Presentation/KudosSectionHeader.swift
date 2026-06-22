@@ -16,10 +16,14 @@ struct KudosSectionHeader: View {
 
     // MARK: - Inputs
 
-    /// Eyebrow line above the divider (e.g. "Sun* Annual Awards 2025").
-    let subtitle: String
-    /// Bold gold section title below the divider (e.g. "HIGHLIGHT KUDOS").
-    let title: String
+    /// Eyebrow line above the divider as a localisation key (e.g.
+    /// `"kudos.section.subtitle"`). Typed as `LocalizedStringKey` so the
+    /// underlying `Text` view tracks the SwiftUI `\.locale` environment and
+    /// updates when the user switches language.
+    let subtitle: LocalizedStringKey
+    /// Bold gold section title below the divider as a localisation key
+    /// (e.g. `"kudos.section.highlight"`).
+    let title: LocalizedStringKey
 
     // MARK: - Body
 

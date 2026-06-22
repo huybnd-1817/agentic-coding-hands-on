@@ -5,7 +5,8 @@ import SwiftUI
 /// Yellow rounded button matching the design:
 /// - Background: #FFEA9E (gold/cream), corner radius: 4pt
 /// - Label: Montserrat Medium 14pt, #00101A (dark), text "Mở Secret Box"
-/// - Gift icon: SF Symbol `gift.fill`, 24×24pt, dark tinted
+/// - Gift icon: 24×24pt asset, positioned on the RIGHT of the label per Figma
+///   layout (Label x=120, icon x=230 — icon trails the text).
 /// - Disabled state: greyed out (opacity 0.4) per clarification TC_FUN_039
 ///
 /// Design values (Figma node 6885:9254):
@@ -25,15 +26,17 @@ struct KudosSecretBoxButton: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
-                Image(systemName: "gift.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
-                    .foregroundColor(.secretBoxIconColor)
-
                 Text(LocalizedStringKey("kudos.secretBox.open"))
                     .font(.custom("Montserrat-Medium", size: 14))
                     .foregroundColor(.secretBoxLabelColor)
+
+                // Gift icon cropped from Figma node `I6885:9254;28:1997` (24×24pt
+                // icon instance, componentId `6885:8513`). The asset is already
+                // tinted to match the design; no template rendering needed.
+                Image("kudos-secretbox-gift")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 40)
@@ -58,8 +61,6 @@ private extension Color {
     static let secretBoxBackground = Color(red: 1.0, green: 234.0/255, blue: 158.0/255)
     /// Figma button label — rgba(0,16,26,1) / #00101A.
     static let secretBoxLabelColor = Color(red: 0, green: 16.0/255, blue: 26.0/255)
-    /// Gift icon uses same dark tint as label.
-    static let secretBoxIconColor  = Color(red: 0, green: 16.0/255, blue: 26.0/255)
 }
 
 // MARK: - Preview

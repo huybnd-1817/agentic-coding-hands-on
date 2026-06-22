@@ -8,17 +8,20 @@ import SwiftUI
 /// Bridging responsibility (Domain → UI structs) lives here, not in the VM, so the
 /// VM stays pure-Domain and straightforward to unit-test without SwiftUI imports.
 ///
-/// `selectedLanguage` is local `@State` because language selection is a UI-only concern
-/// not tracked by the VM. Wiring it to `LanguagePreference` is deferred to phase-09.
+/// Language selection is bound to the shared `LanguagePreference` environment object
+/// — the same source `saaApp` wires into `\.locale`. Using a local `@State` here
+/// would update the chip visually but leave the app locale unchanged, so the
+/// dropdown would silently fail to switch language. Match the pattern used by
+/// `HomeViewContainer` and `LoginViewContainer`.
 struct KudosViewContainer: View {
 
     // MARK: - ViewModel
 
     @StateObject var vm: KudosViewModel
 
-    // MARK: - Local UI-only state
+    // MARK: - Environment
 
-    @State private var selectedLanguage: AppLanguage = .vi
+    @EnvironmentObject private var languagePreference: LanguagePreference
 
     // MARK: - Body
 
@@ -32,12 +35,13 @@ struct KudosViewContainer: View {
             topRecipients: vm.topRecipients.map(Self.recipientData),
             showFireBadge: vm.showFireBadge,
             unreadCount: 0,
-            selectedLanguage: $selectedLanguage,
+            selectedLanguage: $languagePreference.current,
             carouselIndex: carouselBinding,
             selectedHashtag: selectedHashtagBinding,
             selectedDepartment: selectedDepartmentBinding,
             isHashtagSheetPresented: $vm.hashtagSheetPresented,
             isDepartmentSheetPresented: $vm.departmentSheetPresented,
+            onLanguageChange: { languagePreference.current = $0 },
             onSendKudos: {},
             onCardCopyLink: { vm.copyLink($0) },
             onCardLike: { id in Task { await vm.toggleLike(id) } },
@@ -81,13 +85,16 @@ struct KudosViewContainer: View {
     }
 
     /// Converts `selectedDepartmentId` → `DepartmentOption?` for the view.
+    ///
+    /// Displays `department.code` (stable short code such as `"CEV1"`) rather than
+    /// `department.name` so the dropdown labels stay compact and locale-stable.
     private var selectedDepartmentBinding: Binding<DepartmentOption?> {
         Binding(
             get: {
                 guard let id = vm.selectedDepartmentId,
                       let dept = vm.departments.first(where: { $0.id == id })
                 else { return nil }
-                return DepartmentOption(id: dept.id, label: dept.name)
+                return DepartmentOption(id: dept.id, label: dept.code)
             },
             set: { option in
                 Task { await vm.setDepartmentFilter(option?.id) }
@@ -106,7 +113,7 @@ private extension KudosViewContainer {
         formatter.timeZone = TimeZone(identifier: "Asia/Saigon")
 
         let senderName = kudos.isAnonymous
-            ? (kudos.anonymousNickname ?? "Ẩn danh")
+            ? (kudos.anonymousNickname ?? String(localized: "kudos.anonymous.fallback"))
             : kudos.sender.displayName
 
         return KudosCardData(
@@ -132,8 +139,14 @@ private extension KudosViewContainer {
         HashtagOption(id: hashtag.id, label: hashtag.tag)
     }
 
+    /// Map a Domain `Department` to a presentation `DepartmentOption`.
+    ///
+    /// `label` is sourced from `department.code` (e.g. `"CEV1"`) — the short
+    /// stable identifier — rather than `department.name`, which is a longer
+    /// human-readable label intended for tooltips or detail views. The Kudos
+    /// dropdown is a 129pt chip where the compact code fits without truncation.
     static func departmentOption(from department: Department) -> DepartmentOption {
-        DepartmentOption(id: department.id, label: department.name)
+        DepartmentOption(id: department.id, label: department.code)
     }
 
     static func personalStatsData(from stats: UserStats) -> KudosPersonalStatsData {
@@ -147,7 +160,12 @@ private extension KudosViewContainer {
     }
 
     static func recipientData(from author: KudosAuthor) -> KudosRecipientData {
-        KudosRecipientData(
+        let reward = String(localized: "kudos.recipients.reward.saaShirt")
+        let rewardLabel = String(
+            format: String(localized: "kudos.recipients.row.receivedItem"),
+            reward
+        )
+        return KudosRecipientData(
             // Use a stable deterministic string when userId is nil so SwiftUI's
             // ForEach diffing doesn't treat each render as a new item.
             // Strategy: derive a fixed string from displayName so identity is
@@ -155,7 +173,7 @@ private extension KudosViewContainer {
             id: author.userId?.uuidString ?? "anon-\(author.displayName)",
             name: author.displayName,
             avatarAssetName: avatarAsset(for: author),
-            rewardLabel: "Nhận được 1 áo phông SAA"
+            rewardLabel: rewardLabel
         )
     }
 
@@ -164,10 +182,10 @@ private extension KudosViewContainer {
     static func starLabel(for author: KudosAuthor) -> String {
         let tier = StarTier.from(received: author.kudosReceivedCount)
         switch tier {
-        case .zero:  return "Newcomer"
-        case .one:   return "Rising Hero"
-        case .two:   return "Team Player"
-        case .three: return "Legend Hero"
+        case .zero:  return String(localized: "kudos.starTier.zero")
+        case .one:   return String(localized: "kudos.starTier.one")
+        case .two:   return String(localized: "kudos.starTier.two")
+        case .three: return String(localized: "kudos.starTier.three")
         }
     }
 
@@ -193,6 +211,7 @@ private extension KudosViewContainer {
             clipboard: UIKitKudosClipboardService()
         )
     )
+    .environmentObject(LanguagePreference())
     .preferredColorScheme(.dark)
 }
 #endif

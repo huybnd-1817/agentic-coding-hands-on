@@ -21,9 +21,18 @@ struct KudosFilterChip: View {
 
     // MARK: - Inputs
 
-    /// Placeholder text shown when no value is selected (e.g. "Hashtag").
-    let label: String
-    /// Currently selected filter value, or `nil` when no filter is active.
+    /// Localised placeholder shown when no value is selected (e.g. `"kudos.filter.hashtag"`).
+    ///
+    /// Typed as `LocalizedStringKey` so the chip's `Text` view consults the
+    /// SwiftUI `\.locale` environment at render time. Passing a pre-resolved
+    /// `String` here would freeze the label at the locale value at body-eval
+    /// time and the chip would not switch language live.
+    let label: LocalizedStringKey
+    /// Stable identifier slug used for `accessibilityIdentifier` and the
+    /// localisation-agnostic part of the a11y label (e.g. `"hashtag"`).
+    let identifierKey: String
+    /// Currently selected filter value (already user-resolved, e.g. `"CEVC2"`),
+    /// or `nil` when no filter is active.
     let selectedValue: String?
     /// Called when the user taps the chip.
     let onTap: () -> Void
@@ -33,7 +42,7 @@ struct KudosFilterChip: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 4) {
-                Text(displayText)
+                chipText
                     .font(.custom("Montserrat-Regular", size: 14))
                     .foregroundColor(isSelected ? .kudosFilterSelected : .white)
                     .lineLimit(1)
@@ -59,15 +68,26 @@ struct KudosFilterChip: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isSelected ? "\(label): \(selectedValue ?? "")" : label)
+        .accessibilityLabel(isSelected ? Text("\(Text(label)): \(selectedValue ?? "")") : Text(label))
         .accessibilityHint("Double tap to open filter")
-        .accessibilityIdentifier("kudos.filterChip.\(label)")
+        .accessibilityIdentifier("kudos.filterChip.\(identifierKey)")
     }
 
     // MARK: - Helpers
 
     private var isSelected: Bool { selectedValue != nil }
-    private var displayText: String { selectedValue ?? label }
+
+    /// Selected values are runtime data (`"CEVC2"`) and never localised, while
+    /// the placeholder is a catalog key — pick the right `Text` variant so the
+    /// placeholder keeps tracking `\.locale`.
+    @ViewBuilder
+    private var chipText: some View {
+        if let selectedValue {
+            Text(verbatim: selectedValue)
+        } else {
+            Text(label)
+        }
+    }
 }
 
 // MARK: - Color tokens
@@ -89,15 +109,15 @@ private extension Color {
         Color(red: 0, green: 16.0/255, blue: 26.0/255).ignoresSafeArea()
         VStack(spacing: 16) {
             HStack(spacing: 8) {
-                KudosFilterChip(label: "Hashtag",   selectedValue: nil,          onTap: {})
+                KudosFilterChip(label: "Hashtag",   identifierKey: "hashtag",    selectedValue: nil,          onTap: {})
                     .frame(width: 129)
-                KudosFilterChip(label: "Phòng ban", selectedValue: nil,          onTap: {})
+                KudosFilterChip(label: "Phòng ban", identifierKey: "department", selectedValue: nil,          onTap: {})
                     .frame(width: 129)
             }
             HStack(spacing: 8) {
-                KudosFilterChip(label: "Hashtag",   selectedValue: "Dedicated",  onTap: {})
+                KudosFilterChip(label: "Hashtag",   identifierKey: "hashtag",    selectedValue: "Dedicated",  onTap: {})
                     .frame(width: 129)
-                KudosFilterChip(label: "Phòng ban", selectedValue: "Engineering",onTap: {})
+                KudosFilterChip(label: "Phòng ban", identifierKey: "department", selectedValue: "Engineering",onTap: {})
                     .frame(width: 129)
             }
         }

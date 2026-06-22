@@ -150,15 +150,13 @@ struct KudosView: View {
 
     private var allKudosGroup: some View {
         VStack(alignment: .leading, spacing: 24) {
-            KudosSectionHeader(subtitle: String(localized: "kudos.section.subtitle"), title: String(localized: "kudos.section.all"))
+            KudosSectionHeader(subtitle: "kudos.section.subtitle", title: "kudos.section.all")
                 .padding(.horizontal, 20)
 
-            KudosPersonalStatsSection(stats: stats, showFireBadge: showFireBadge)
-                .padding(.horizontal, 20)
-
-            KudosSecretBoxButton(
-                isEnabled: stats.secretBoxesUnopened > 0,
-                onTap: onOpenSecretBox
+            KudosPersonalStatsSection(
+                stats: stats,
+                showFireBadge: showFireBadge,
+                onOpenSecretBox: onOpenSecretBox
             )
             .padding(.horizontal, 20)
 

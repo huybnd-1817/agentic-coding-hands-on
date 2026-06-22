@@ -22,8 +22,8 @@ struct KudosSpotlightStubSection: View {
             // Section header — KudosSectionHeader is provided by a sibling subagent.
             // Init: KudosSectionHeader(subtitle:title:)
             KudosSectionHeader(
-                subtitle: String(localized: "kudos.section.subtitle"),
-                title: String(localized: "kudos.section.spotlight")
+                subtitle: "kudos.section.subtitle",
+                title: "kudos.section.spotlight"
             )
 
             placeholderCard
