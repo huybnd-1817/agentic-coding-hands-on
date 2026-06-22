@@ -33,7 +33,6 @@ struct KudosViewContainer: View {
             departmentOptions: vm.departments.map(Self.departmentOption),
             stats: Self.personalStatsData(from: vm.stats),
             topRecipients: vm.topRecipients.map(Self.recipientData),
-            showFireBadge: vm.showFireBadge,
             unreadCount: 0,
             selectedLanguage: $languagePreference.current,
             carouselIndex: carouselBinding,

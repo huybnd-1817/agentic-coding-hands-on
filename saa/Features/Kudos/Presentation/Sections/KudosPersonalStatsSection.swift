@@ -6,7 +6,7 @@ import SwiftUI
 /// "Open Secret Box" CTA button as the final row inside the card:
 ///   - Kudos received (D.1.2)
 ///   - Kudos sent (D.1.3)
-///   - Hearts received (D.1.4) with optional x2 fire badge
+///   - Hearts received (D.1.4) with x2 fire badge (Figma `mms_S_Group 435`)
 ///   - [divider — D.1.5]
 ///   - Secret Boxes opened (D.1.6)
 ///   - Secret Boxes unopened (D.1.7)
@@ -28,8 +28,6 @@ struct KudosPersonalStatsSection: View {
     // MARK: - Inputs
 
     let stats: KudosPersonalStatsData
-    /// When `true`, the Hearts row shows a flame-x2 badge (active event bonus).
-    let showFireBadge: Bool
     /// Forwarded to the embedded `KudosSecretBoxButton`. Tapping fires
     /// `onOpenSecretBox` only when the button is enabled.
     let onOpenSecretBox: () -> Void
@@ -94,9 +92,7 @@ struct KudosPersonalStatsSection: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                if showFireBadge {
-                    fireBadge
-                }
+                fireBadge
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -107,17 +103,25 @@ struct KudosPersonalStatsSection: View {
         .frame(minHeight: 20)
     }
 
-    /// Flame badge — clean flame icon exported from Figma node `6885:9240`
-    /// (`image 35` only, no "x2" text overlay). Shown next to the "Hearts
-    /// received" label when an event bonus is active.
-    /// Source size: 24×28.541pt → rendered at 24×28pt (rounded).
-    /// The VM sets `showFireBadge = true` when `bonus.multiplier > 1`.
+    /// Flame badge — Figma group `mms_S_Group 435` (id `6885:9239`): the
+    /// `image 35` flame (id `6885:9240`) with the "x2" text label (id
+    /// `6885:9241`) overlaid on top, centered on the flame.
+    /// Group size: 24×28.541pt → rendered at 24×28pt (rounded). The "x2"
+    /// label sits ~2.5pt below the geometric center to align with the
+    /// widest part of the flame, matching Figma.
     private var fireBadge: some View {
-        Image("kudos-stats-fire")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 24, height: 28)
-            .accessibilityLabel("Nhân đôi tim")
+        ZStack {
+            Image("kudos-stats-fire")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 28)
+            Text("x2")
+                .font(.custom("Montserrat-Bold", size: 14))
+                .foregroundColor(.white)
+                .offset(y: 2.5)
+        }
+        .frame(width: 24, height: 28)
+        .accessibilityLabel("Nhân đôi tim")
     }
 
     // MARK: - Divider (D.1.5)
@@ -154,12 +158,6 @@ private extension Color {
         VStack(spacing: 16) {
             KudosPersonalStatsSection(
                 stats: .mock,
-                showFireBadge: true,
-                onOpenSecretBox: {}
-            )
-            KudosPersonalStatsSection(
-                stats: .mock,
-                showFireBadge: false,
                 onOpenSecretBox: {}
             )
         }

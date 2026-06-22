@@ -48,7 +48,6 @@ final class KudosViewModel: ObservableObject {
     @Published private(set) var departments: [Department] = []
     @Published private(set) var stats: UserStats = .zero
     @Published private(set) var topRecipients: [KudosAuthor] = []
-    @Published private(set) var activeBonus: EventBonus? = nil
 
     @Published private(set) var carouselIndex: Int = 0
     @Published private(set) var selectedHashtagId: HashtagID? = nil
@@ -83,12 +82,6 @@ final class KudosViewModel: ObservableObject {
     private let clock: () -> Date
 
     // MARK: - Computed
-
-    /// True when an active event bonus window is open AND has a multiplier > 1.
-    var showFireBadge: Bool {
-        guard let bonus = activeBonus else { return false }
-        return bonus.isActive(now: clock()) && bonus.multiplier > 1
-    }
 
     /// True when there are unopened secret boxes and no open operation in flight.
     var canOpenSecretBox: Bool {
@@ -208,7 +201,6 @@ final class KudosViewModel: ObservableObject {
         departments = snapshot.departments
         stats = snapshot.stats
         topRecipients = snapshot.topRecipients
-        activeBonus = snapshot.activeBonus
         let total = snapshot.highlights.count + snapshot.feed.count
         loadState = total == 0 ? .empty : .loaded
     }

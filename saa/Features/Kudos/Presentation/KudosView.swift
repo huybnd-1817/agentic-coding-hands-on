@@ -27,7 +27,6 @@ struct KudosView: View {
     var departmentOptions: [DepartmentOption]    = KudosView.defaultDepartmentOptions
     var stats: KudosPersonalStatsData            = .mock
     var topRecipients: [KudosRecipientData]      = KudosRecipientData.mockList
-    var showFireBadge: Bool                      = true
     var unreadCount: Int                         = 0
 
     // MARK: - Bindings
@@ -155,7 +154,6 @@ struct KudosView: View {
 
             KudosPersonalStatsSection(
                 stats: stats,
-                showFireBadge: showFireBadge,
                 onOpenSecretBox: onOpenSecretBox
             )
             .padding(.horizontal, 20)
