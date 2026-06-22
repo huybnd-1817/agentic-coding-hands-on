@@ -100,7 +100,7 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
                 kudosReceivedCount: 0
             ),
             recipient: recipientA,
-            title: nil,
+            title: "NGƯỜI HÙNG THẦM LẶNG",
             message: "Cảm ơn bạn đã luôn nhiệt tình hỗ trợ mọi người!",
             isAnonymous: true,
             anonymousNickname: "Bí Ẩn",

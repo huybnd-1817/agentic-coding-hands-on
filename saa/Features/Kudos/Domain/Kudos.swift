@@ -56,8 +56,8 @@ struct Kudos: Identifiable, Hashable, Sendable {
     let sender: KudosAuthor
     /// The person being recognised.
     let recipient: KudosAuthor
-    /// Optional bold award title displayed on the card (e.g. "IDOL GIỚI TRẺ").
-    let title: String?
+    /// Bold award title displayed on the card (e.g. "IDOL GIỚI TRẺ"). Required.
+    let title: String
     /// Body text of the recognition note.
     let message: String
     /// When true the sender identity is hidden per anonymous sending rules.

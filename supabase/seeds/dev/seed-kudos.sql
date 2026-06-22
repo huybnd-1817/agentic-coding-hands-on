@@ -59,68 +59,68 @@ begin
 
   -- ── Insert kudos rows ────────────────────────────────────────────────────
   -- 1. Named, no photo, active
-  insert into public.kudos (sender_id, recipient_id, message, award_category_name, is_anonymous, status)
-  values (p1, p2, 'Cảm ơn bạn đã luôn hỗ trợ team trong sprint vừa qua. Tinh thần của bạn thật tuyệt vời!', 'Top Talent', false, 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, status)
+  values (p1, p2, 'Top Talent', 'Cảm ơn bạn đã luôn hỗ trợ team trong sprint vừa qua. Tinh thần của bạn thật tuyệt vời!', false, 'active')
   returning id into k1;
 
   -- 2. Named, with photo, active
-  insert into public.kudos (sender_id, recipient_id, message, award_category_name, is_anonymous, photo_url, status)
-  values (p2, p1, 'Bạn đã hoàn thành feature khó nhất của sprint với chất lượng xuất sắc. Rất tự hào!', 'MVP', false,
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, photo_url, status)
+  values (p2, p1, 'MVP', 'Bạn đã hoàn thành feature khó nhất của sprint với chất lượng xuất sắc. Rất tự hào!', false,
           'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800', 'active')
   returning id into k2;
 
   -- 3. Anonymous, no photo
-  insert into public.kudos (sender_id, recipient_id, message, is_anonymous, anonymous_nickname, status)
-  values (p1, p3, 'Một người đồng đội tuyệt vời, luôn sẵn sàng giúp đỡ mọi người!', true, 'Một người bạn ẩn danh', 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, anonymous_nickname, status)
+  values (p1, p3, 'Người đồng đội tuyệt vời', 'Một người đồng đội tuyệt vời, luôn sẵn sàng giúp đỡ mọi người!', true, 'Một người bạn ẩn danh', 'active')
   returning id into k3;
 
   -- 4. Named, with photo, active
-  insert into public.kudos (sender_id, recipient_id, message, award_category_name, is_anonymous, photo_url, status)
-  values (p3, p2, 'Cảm ơn bạn vì buổi knowledge sharing rất hữu ích về Swift Concurrency!', 'Signature 2026 - Creator', false,
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, photo_url, status)
+  values (p3, p2, 'Signature 2026 - Creator', 'Cảm ơn bạn vì buổi knowledge sharing rất hữu ích về Swift Concurrency!', false,
           'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800', 'active')
   returning id into k4;
 
   -- 5. Named, no photo, with title
-  insert into public.kudos (sender_id, recipient_id, title, message, award_category_name, is_anonymous, status)
-  values (p4, p1, 'Người hùng thầm lặng', 'Bạn đã fix bug production lúc nửa đêm và cứu cả team. Cảm ơn rất nhiều!', 'Best Manager', false, 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, status)
+  values (p4, p1, 'Người hùng thầm lặng', 'Bạn đã fix bug production lúc nửa đêm và cứu cả team. Cảm ơn rất nhiều!', false, 'active')
   returning id into k5;
 
   -- 6. Anonymous, with photo
-  insert into public.kudos (sender_id, recipient_id, message, is_anonymous, anonymous_nickname, photo_url, status)
-  values (p2, p4, 'Code review của bạn luôn chi tiết và giúp ích rất nhiều cho team!', true, 'Đồng nghiệp bí ẩn',
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, anonymous_nickname, photo_url, status)
+  values (p2, p4, 'Reviewer tận tâm', 'Code review của bạn luôn chi tiết và giúp ích rất nhiều cho team!', true, 'Đồng nghiệp bí ẩn',
           'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800', 'active')
   returning id into k6;
 
   -- 7. Named, no photo
-  insert into public.kudos (sender_id, recipient_id, message, award_category_name, is_anonymous, status)
-  values (p3, p4, 'Tinh thần Wasshoi của bạn lan toả cả team. Cảm ơn vì luôn giữ năng lượng tích cực!', 'Top Project Leader', false, 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, status)
+  values (p3, p4, 'Top Project Leader', 'Tinh thần Wasshoi của bạn lan toả cả team. Cảm ơn vì luôn giữ năng lượng tích cực!', false, 'active')
   returning id into k7;
 
   -- 8. Named, with photo
-  insert into public.kudos (sender_id, recipient_id, message, award_category_name, is_anonymous, photo_url, status)
-  values (p4, p3, 'Bạn đã onboard member mới cực kỳ tốt. Team grow được là nhờ có bạn!', 'Top Project', false,
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, photo_url, status)
+  values (p4, p3, 'Top Project', 'Bạn đã onboard member mới cực kỳ tốt. Team grow được là nhờ có bạn!', false,
           'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800', 'active')
   returning id into k8;
 
   -- 9. Named, no photo
-  insert into public.kudos (sender_id, recipient_id, message, is_anonymous, status)
-  values (p1, p4, 'Deliverable của bạn luôn đúng deadline và chất lượng cao. Team tin tưởng bạn lắm!', false, 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, status)
+  values (p1, p4, 'Người giữ deadline', 'Deliverable của bạn luôn đúng deadline và chất lượng cao. Team tin tưởng bạn lắm!', false, 'active')
   returning id into k9;
 
   -- 10. Anonymous, no photo
-  insert into public.kudos (sender_id, recipient_id, message, is_anonymous, anonymous_nickname, status)
-  values (p4, p2, 'Cảm ơn vì luôn lắng nghe và đồng hành cùng team trong những lúc áp lực nhất.', true, 'Fan của bạn', 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, anonymous_nickname, status)
+  values (p4, p2, 'Người bạn đồng hành', 'Cảm ơn vì luôn lắng nghe và đồng hành cùng team trong những lúc áp lực nhất.', true, 'Fan của bạn', 'active')
   returning id into k10;
 
   -- 11. Named, with photo, title
-  insert into public.kudos (sender_id, recipient_id, title, message, award_category_name, is_anonymous, photo_url, status)
-  values (p2, p3, 'Star of the Sprint', 'Bạn đã lead technical solution cực kỳ xuất sắc. Cả team học được rất nhiều!', 'Top Talent', false,
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, photo_url, status)
+  values (p2, p3, 'Star of the Sprint', 'Bạn đã lead technical solution cực kỳ xuất sắc. Cả team học được rất nhiều!', false,
           'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800', 'active')
   returning id into k11;
 
   -- 12. Named, no photo (cross p3 → p1)
-  insert into public.kudos (sender_id, recipient_id, message, award_category_name, is_anonymous, status)
-  values (p3, p1, 'Cảm ơn vì sự kiên nhẫn và tận tâm trong mọi task. Bạn là tấm gương cho team!', 'MVP', false, 'active')
+  insert into public.kudos (sender_id, recipient_id, title, message, is_anonymous, status)
+  values (p3, p1, 'Tấm gương kiên nhẫn', 'Cảm ơn vì sự kiên nhẫn và tận tâm trong mọi task. Bạn là tấm gương cho team!', false, 'active')
   returning id into k12;
 
   -- ── Attach hashtags ──────────────────────────────────────────────────────

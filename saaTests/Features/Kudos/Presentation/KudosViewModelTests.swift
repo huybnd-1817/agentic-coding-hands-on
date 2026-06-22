@@ -474,7 +474,7 @@ private func makeKudos(
             departmentId: nil,
             kudosReceivedCount: 0
         ),
-        title: nil,
+        title: "Great Title",
         message: "Great work!",
         isAnonymous: false,
         anonymousNickname: nil,

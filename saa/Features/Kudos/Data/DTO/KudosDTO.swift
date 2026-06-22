@@ -98,9 +98,8 @@ struct KudosDTO: Codable, Sendable {
     let id: UUID
     let sender_id: UUID
     let recipient_id: UUID
-    let title: String?
+    let title: String
     let message: String
-    let award_category_name: String?
     let is_anonymous: Bool
     let anonymous_nickname: String?
     let photo_url: String?
@@ -124,7 +123,6 @@ struct KudosDTO: Codable, Sendable {
         case recipient_id
         case title
         case message
-        case award_category_name
         case is_anonymous
         case anonymous_nickname
         case photo_url
