@@ -26,9 +26,10 @@ struct KudosViewContainer: View {
     // MARK: - Body
 
     var body: some View {
-        KudosView(
-            highlights: vm.highlights.map(Self.cardData),
-            feed: vm.feed.map(Self.cardData),
+        let departmentLookup = Dictionary(uniqueKeysWithValues: vm.departments.map { ($0.id, $0) })
+        return KudosView(
+            highlights: vm.highlights.map { Self.cardData(from: $0, departments: departmentLookup) },
+            feed: vm.feed.map { Self.cardData(from: $0, departments: departmentLookup) },
             hashtagOptions: vm.hashtags.map(Self.hashtagOption),
             departmentOptions: vm.departments.map(Self.departmentOption),
             stats: Self.personalStatsData(from: vm.stats),
@@ -106,27 +107,23 @@ struct KudosViewContainer: View {
 
 private extension KudosViewContainer {
 
-    static func cardData(from kudos: Kudos) -> KudosCardData {
+    static func cardData(from kudos: Kudos, departments: [UUID: Department]) -> KudosCardData {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm - MM/dd/yyyy"
         formatter.timeZone = TimeZone(identifier: "Asia/Saigon")
 
-        let senderName = kudos.isAnonymous
-            ? (kudos.anonymousNickname ?? String(localized: "kudos.anonymous.fallback"))
-            : kudos.sender.displayName
-
         return KudosCardData(
             id: kudos.id,
-            senderName: senderName,
-            senderCode: kudos.sender.employeeCode ?? "",
+            senderName: kudos.sender.displayName,
+            senderCode: codeLabel(for: kudos.sender, departments: departments),
             senderRole: starLabel(for: kudos.sender),
             senderAvatarAssetName: avatarAsset(for: kudos.sender),
             recipientName: kudos.recipient.displayName,
-            recipientCode: kudos.recipient.employeeCode ?? "",
+            recipientCode: codeLabel(for: kudos.recipient, departments: departments),
             recipientRole: starLabel(for: kudos.recipient),
             recipientAvatarAssetName: avatarAsset(for: kudos.recipient),
             timestampText: formatter.string(from: kudos.createdAt),
-            title: kudos.title ?? "",
+            title: kudos.title,
             body: kudos.message,
             hashtags: kudos.hashtags.map { $0.tag.hasPrefix("#") ? String($0.tag.dropFirst()) : $0.tag },
             heartCount: kudos.heartCount,
@@ -174,6 +171,19 @@ private extension KudosViewContainer {
             avatarAssetName: avatarAsset(for: author),
             rewardLabel: rewardLabel
         )
+    }
+
+    // MARK: - Code label (department code with employee-code fallback)
+
+    /// Resolves the `code` slot shown under the avatar to the author's
+    /// department code (e.g. `"CEV1"`) — looked up via `departmentId`.
+    /// Falls back to `employeeCode` when departmentId is unset, then to
+    /// empty so the row still lays out cleanly.
+    static func codeLabel(for author: KudosAuthor, departments: [UUID: Department]) -> String {
+        if let departmentId = author.departmentId, let department = departments[departmentId] {
+            return department.code
+        }
+        return author.employeeCode ?? ""
     }
 
     // MARK: - Star tier label
