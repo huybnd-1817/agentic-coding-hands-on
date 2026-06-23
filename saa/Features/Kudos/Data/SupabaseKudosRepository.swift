@@ -252,7 +252,6 @@ private extension SupabaseKudosRepository {
         // Resolve liked state: fetch all reactions for this batch where user = me.
         var likedKudosIds: Set<UUID> = []
         if let userId = currentUserId {
-            let kudosIds = dtos.map(\.id.uuidString).joined(separator: ",")
             // Single round-trip: fetch only this user's reactions for the batch.
             struct ReactionRow: Decodable { let kudos_id: UUID }
             let rows: [ReactionRow] = (try? await client
@@ -263,7 +262,6 @@ private extension SupabaseKudosRepository {
                 .execute()
                 .value) ?? []
             likedKudosIds = Set(rows.map(\.kudos_id))
-            _ = kudosIds  // suppress unused-variable warning
         }
 
         return dtos.map { dto in
