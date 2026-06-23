@@ -13,7 +13,7 @@ Refactor plan that landed this layout: [`plans/260612-1012-clean-architecture-re
 2. **Domain imports only `Foundation`.** Two documented exceptions, both because the GIDSignIn API requires a `UIViewController` presenter:
    - `Features/Authentication/Domain/GoogleSignInServiceProtocol.swift` — imports `UIKit` (the presenter parameter type)
    - `Features/Authentication/Domain/UseCases/SignInWithGoogleUseCase.swift` — imports `UIKit` (forwards the presenter through the protocol seam)
-3. **Composition root.** `App/saaApp.swift` is the only place that wires the dependency graph. Manual DI; if the file exceeds 80 LOC, helpers move into `App/saaApp+Setup.swift` (already in place).
+3. **Composition root.** `App/saaApp.swift` is the only place that wires the dependency graph. Manual DI; if the file exceeds 80 LOC, helpers move into feature-specific extension files (`saaApp+KudosSetup.swift`, `saaApp+HomeSetup.swift`, etc.), each ≤ 80 LOC.
 4. **Stores are singletons in scope, not in code.** `AuthSessionStore` is constructed in `saaApp.swift` and injected via `@EnvironmentObject`. No `static shared` on the store.
 5. **No SDK type leakage into views.** Mapping from `Supabase.Session` to `UserSession` happens in `Data/UserSessionMapper.swift`. Mapping from arbitrary `Error` to the `AuthError` domain enum happens in `Data/AuthErrorMapper.swift`. The Domain enum is pure-Swift.
 
@@ -23,7 +23,9 @@ Refactor plan that landed this layout: [`plans/260612-1012-clean-architecture-re
 saa/
 ├── App/
 │   ├── saaApp.swift                       # composition root (≤ 80 LOC)
-│   └── saaApp+Setup.swift                 # Google config + DEBUG UI-test seam
+│   ├── saaApp+Setup.swift                 # Google config + DEBUG UI-test seam
+│   ├── saaApp+HomeSetup.swift             # Home dependency wiring
+│   └── saaApp+KudosSetup.swift            # Kudos dependency wiring
 ├── Core/
 │   ├── Configuration/Environment.swift
 │   ├── Localization/{AppLanguage,LanguagePreference}.swift
@@ -75,6 +77,37 @@ saa/
 │           ├── Countdown.swift
 │           ├── HomeMockData.swift         # preview fixtures (awards + other sections)
 │           └── Stubs/                     # placeholder screens for future tabs
+│   └── Kudos/
+│       ├── Domain/
+│       │   ├── Kudos.swift                # entity
+│       │   ├── Department.swift           # entity
+│       │   ├── EventBonus.swift           # entity
+│       │   ├── Hashtag.swift              # entity
+│       │   ├── KudosFilter.swift          # value type
+│       │   ├── StarTier.swift             # enum
+│       │   ├── UserStats.swift            # entity
+│       │   ├── KudosRepositoryProtocol.swift
+│       │   ├── KudosError.swift           # pure enum
+│       │   └── UseCases/
+│       │       ├── LoadKudosScreenUseCase.swift
+│       │       └── ToggleKudosReactionUseCase.swift
+│       ├── Data/
+│       │   ├── DTO/                       # Supabase codable DTOs
+│       │   ├── SupabaseKudosRepository.swift
+│       │   ├── KudosMapper.swift
+│       │   ├── DepartmentMapper.swift
+│       │   ├── HashtagMapper.swift
+│       │   ├── EventBonusMapper.swift
+│       │   ├── UserStatsMapper.swift
+│       │   └── KudosErrorMapper.swift
+│       └── Presentation/
+│           ├── KudosViewContainer.swift   # mounted on MainTabView tab 1
+│           ├── KudosView.swift
+│           ├── KudosViewModel.swift       # @MainActor ObservableObject
+│           ├── KudosViewModel+Likes.swift # reaction toggle extension
+│           ├── Components/               # KudosCard, filter chips, carousel dots
+│           ├── Filters/                  # department + hashtag filter sheets
+│           └── Sections/                 # Hero, Highlight, All, Stats, etc.
 └── Shared/
     ├── Components/{CountryFlag,LanguagePicker}.swift
     └── Extensions/UIApplication+TopViewController.swift
@@ -88,11 +121,18 @@ saaTests/
 │   ├── AuthRepositoryFake.swift
 │   ├── AwardsRepositoryFake.swift
 │   ├── GoogleSignInServiceFake.swift
+│   ├── KudosClipboardServiceFake.swift    # added for Kudos feature
+│   ├── KudosRepositoryFake.swift          # added for Kudos feature
 │   └── NonceGeneratorFake.swift
 ├── Domain/
 │   └── SignInWithGoogleUseCaseTests.swift # no SDK, no network
-├── Features/Home/Presentation/
-│   └── LocalizationKeysExistTests.swift
+├── Features/
+│   ├── Home/Presentation/
+│   │   └── LocalizationKeysExistTests.swift
+│   └── Kudos/
+│       ├── Domain/                        # Kudos domain unit tests
+│       ├── Data/                          # Kudos data layer tests
+│       └── Presentation/                  # KudosViewModel tests
 ├── Presentation/
 │   ├── AuthSessionStoreTests.swift
 │   ├── HomeViewModelTests.swift
@@ -140,6 +180,24 @@ flowchart LR
 ```
 
 The dashed arrow from `RepositoryProtocol` to `Repository Impl` is dependency-inversion: Domain defines the contract; Data implements it; Presentation depends on the contract, never on the implementation.
+
+## Database schema
+
+All tables live in the Supabase `public` schema. RLS is enabled on every table. Migrations are in `supabase/migrations/`.
+
+| Table | Introduced | Notes |
+|-------|-----------|-------|
+| `awards` | feature/home | SELECT to `authenticated` |
+| `profiles` | feature/home | Altered in feature/kudos: `department_id` FK added |
+| `departments` | feature/kudos | Lookup table; SELECT to `authenticated` |
+| `hashtags` | feature/kudos | Lookup table; SELECT to `authenticated` |
+| `kudos` | feature/kudos | Core record; writes `service_role` only |
+| `kudos_hashtags` | feature/kudos | Join table; writes `service_role` only |
+| `kudos_reactions` | feature/kudos | Reactions; writes `service_role` only |
+| `user_stats` | feature/kudos | Aggregates; SELECT restricted to row owner |
+| `event_bonuses` | feature/kudos | Bonus config; writes `service_role` only |
+
+Triggers (feature/kudos): profile insert→`user_stats` bootstrap; kudos insert→sent/received count update; `kudos_reactions` insert/delete↔sender hearts balance.
 
 ## Adding a new feature
 

@@ -8,12 +8,13 @@ struct saaApp: App {
     @StateObject private var languagePreference = LanguagePreference()
 
     private let restoreUseCase: RestoreSessionUseCase
-    private let signOutUseCase: SignOutUseCase
+    let signOutUseCase: SignOutUseCase  // internal: accessed by saaApp+HomeSetup.swift
     private let loginViewModel: LoginViewModel
 
-    // Home feature graph
-    private let awardsRepository: any AwardsRepositoryProtocol
-    private let notificationStore = NotificationStubStore()
+    // Home + Kudos graphs — internal so saaApp+HomeSetup.swift can read them.
+    let awardsRepository: any AwardsRepositoryProtocol
+    let notificationStore = NotificationStubStore()
+    let kudosViewModel: KudosViewModel
 
     init() {
         Self.configureGoogleSignIn()
@@ -50,19 +51,9 @@ struct saaApp: App {
         signOutUseCase = SignOutUseCase(repository: repo, googleService: google, store: store)
         loginViewModel = vm
 
-        // Home feature: Supabase-backed in prod / dev; in-memory mock under
-        // `-uiTestMode` so HomeView reaches `.loaded` on first frame. The
-        // AwardsLoadingView shimmer is a `repeatForever` animation; if it
-        // runs while a URLSession waits on an unreachable Supabase (CI uses
-        // stub xcconfig), the view tree never quiesces and XCUITest taps on
-        // home-header elements race the 3s waitForExistence window.
-        #if DEBUG
-        awardsRepository = (scenarioName != nil)
-            ? MockAwardsRepository(behavior: Self.awardsBehavior(for: scenarioName))
-            : SupabaseAwardsRepository()
-        #else
-        awardsRepository = SupabaseAwardsRepository()
-        #endif
+        // Home + Kudos graphs — see saaApp+HomeSetup.swift / saaApp+KudosSetup.swift.
+        awardsRepository = Self.makeAwardsRepository(scenarioName: scenarioName)
+        kudosViewModel = Self.makeKudosViewModel(scenarioName: scenarioName)
     }
 
     var body: some Scene {
@@ -85,20 +76,5 @@ struct saaApp: App {
             }
             .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
         }
-    }
-
-    // MARK: - Home composition
-
-    /// Builds the Home tab root. Returns an `AnyView` so `AppRouter` stays
-    /// view-type-agnostic and only depends on the closure shape.
-    private func makeHomeRoot() -> AnyView {
-        let container = HomeViewContainer(
-            viewModel: HomeViewModel(
-                repository: awardsRepository,
-                notificationStore: notificationStore
-            ),
-            signOutUseCase: signOutUseCase
-        )
-        return AnyView(MainTabView(home: container))
     }
 }

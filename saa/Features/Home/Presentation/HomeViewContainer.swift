@@ -10,6 +10,10 @@ import SwiftUI
 /// lives in this file. Stub destinations (Phase 06) are pushed via a single
 /// `NavigationStack` path. Language selection is now an inline dropdown
 /// rendered by `LanguagePicker` inside the header — no sheet involved.
+///
+/// Cross-tab navigation (Phase 09): owns `activeTab` state and passes it to
+/// `MainTabView` via `externalSelection`. `HomeView.onKudosDetail` mutates
+/// `activeTab = .kudos` to switch the tab-bar from outside `MainTabView`.
 struct HomeViewContainer: View {
 
     // MARK: - Dependencies
@@ -20,6 +24,10 @@ struct HomeViewContainer: View {
 
     let signOutUseCase: SignOutUseCase
 
+    /// Passed to `MainTabView(kudosViewModel:)` so the Kudos tab mounts the
+    /// real VM-backed container rather than a stub.
+    let kudosViewModel: KudosViewModel
+
     // MARK: - Navigation state
 
     /// Typed-array `NavigationStack` path so we can inspect the current top of
@@ -29,21 +37,37 @@ struct HomeViewContainer: View {
     /// frame, beating any `@State Bool` gate the FAB might hold.
     @State private var path: [HomeRoute] = []
 
+    /// Drives `MainTabView` tab selection from this container.
+    /// Mutated by `onKudosDetail` to switch to the Kudos tab.
+    @State private var activeTab: NavTab = .home
+
     // MARK: - Init
 
     /// `@autoclosure` keeps the VM construction deferred until `@StateObject`
     /// captures it once for the view's lifetime.
     init(
         viewModel: @autoclosure @escaping () -> HomeViewModel,
-        signOutUseCase: SignOutUseCase
+        signOutUseCase: SignOutUseCase,
+        kudosViewModel: KudosViewModel
     ) {
         _viewModel = StateObject(wrappedValue: viewModel())
         self.signOutUseCase = signOutUseCase
+        self.kudosViewModel = kudosViewModel
     }
 
     // MARK: - Body
 
     var body: some View {
+        MainTabView(
+            home: homeStack,
+            externalSelection: $activeTab,
+            kudosViewModel: kudosViewModel
+        )
+    }
+
+    // MARK: - Home NavigationStack (isolated so MainTabView generic param stays stable)
+
+    private var homeStack: some View {
         NavigationStack(path: $path) {
             HomeView(
                 signOutUseCase: signOutUseCase,
@@ -58,7 +82,7 @@ struct HomeViewContainer: View {
                 onAboutKudos:     { push(.kudosOverview) },
                 onAwardDetail:    { id in push(.awardDetail(id)) },
                 onRetryAwards:    { Task { await viewModel.retryAwards() } },
-                onKudosDetail:    { push(.kudosDetail) },
+                onKudosDetail:    { activeTab = .kudos },
                 onBellTap:        { push(.notifications) },
                 onSearchTap:      { push(.search) },
                 onLanguageChange: { languagePreference.current = $0 },

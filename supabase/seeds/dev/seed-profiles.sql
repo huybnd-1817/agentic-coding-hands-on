@@ -1,1 +1,0 @@
--- profiles auto-populated by handle_new_user trigger; no manual seeding needed

@@ -73,6 +73,9 @@ plans/**/*
 ## User settings
 xcuserdata/
 
+## Build output (xcodebuild -derivedDataPath ./DerivedData)
+DerivedData/
+
 ## Obj-C/Swift specific
 *.hmap
 
