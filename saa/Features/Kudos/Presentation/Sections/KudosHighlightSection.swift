@@ -281,29 +281,36 @@ struct KudosHighlightSection: View {
 
     // MARK: - Carousel (iOS 17 snap + scrollTransition)
 
+    /// One card cell — Figma 273×255pt frame. Shared by both iOS 17 and
+    /// iOS 16 carousel branches; the iOS 17 branch overlays a
+    /// `.scrollTransition` for the snap-fade effect.
+    private func card(_ data: KudosCardData) -> some View {
+        KudosCard(
+            data: data,
+            bodyLineLimit: 3,
+            onCopyLink: onCardCopyLink,
+            onLike: onCardLike,
+            onViewDetail: onCardViewDetail,
+            onHashtagTap: onHashtagTagTap,
+            onSenderTap: onSenderTap,
+            onRecipientTap: onRecipientTap
+        )
+        .frame(width: cardWidth, height: cardHeight)
+    }
+
     @ViewBuilder
     private func carousel(horizontalMargin: CGFloat) -> some View {
         if #available(iOS 17.0, *) {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: cardSpacing) {
-                    ForEach(highlights) { card in
-                        KudosCard(
-                            data: card,
-                            bodyLineLimit: 3,
-                            onCopyLink: onCardCopyLink,
-                            onLike: onCardLike,
-                            onViewDetail: onCardViewDetail,
-                            onHashtagTap: onHashtagTagTap,
-                            onSenderTap: onSenderTap,
-                            onRecipientTap: onRecipientTap
-                        )
-                        .frame(width: cardWidth, height: cardHeight)
-                        .scrollTransition(.animated(.easeInOut(duration: 0.25))) { content, phase in
-                            content
-                                .scaleEffect(phase.isIdentity ? 1.0 : 0.88)
-                                .opacity(phase.isIdentity ? 1.0 : 0.6)
-                        }
-                        .id(card.id)
+                    ForEach(highlights) { data in
+                        card(data)
+                            .scrollTransition(.animated(.easeInOut(duration: 0.25))) { content, phase in
+                                content
+                                    .scaleEffect(phase.isIdentity ? 1.0 : 0.88)
+                                    .opacity(phase.isIdentity ? 1.0 : 0.6)
+                            }
+                            .id(data.id)
                     }
                 }
                 .scrollTargetLayout()
@@ -321,19 +328,7 @@ struct KudosHighlightSection: View {
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: cardSpacing) {
-                    ForEach(highlights) { card in
-                        KudosCard(
-                            data: card,
-                            bodyLineLimit: 3,
-                            onCopyLink: onCardCopyLink,
-                            onLike: onCardLike,
-                            onViewDetail: onCardViewDetail,
-                            onHashtagTap: onHashtagTagTap,
-                            onSenderTap: onSenderTap,
-                            onRecipientTap: onRecipientTap
-                        )
-                        .frame(width: cardWidth, height: cardHeight)
-                    }
+                    ForEach(highlights, content: card)
                 }
                 .padding(.horizontal, horizontalMargin)
             }
