@@ -59,28 +59,37 @@ struct KudosCard: View {
     /// arrow lands on the geometric centre regardless of device width.
     private var traoNhanRow: some View {
         HStack(spacing: 0) {
-            KudosCardPersonInfo(
+            personInfo(
                 name: data.senderName, code: data.senderCode,
-                starTier: data.senderStarTier,
-                avatarURL: data.senderAvatarURL
+                starTier: data.senderStarTier, avatarURL: data.senderAvatarURL,
+                onTap: onSenderTap
             )
-            .onTapGesture { onSenderTap(data.id) }
-
             Spacer(minLength: 0)
-
             directionArrow
-
             Spacer(minLength: 0)
-
-            KudosCardPersonInfo(
+            personInfo(
                 name: data.recipientName, code: data.recipientCode,
-                starTier: data.recipientStarTier,
-                avatarURL: data.recipientAvatarURL
+                starTier: data.recipientStarTier, avatarURL: data.recipientAvatarURL,
+                onTap: onRecipientTap
             )
-            .onTapGesture { onRecipientTap(data.id) }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 62)
+    }
+
+    /// Tappable person-info cell — shared by the sender and recipient slots.
+    private func personInfo(
+        name: String,
+        code: String,
+        starTier: StarTier,
+        avatarURL: URL?,
+        onTap: @escaping (KudosCardID) -> Void
+    ) -> some View {
+        KudosCardPersonInfo(
+            name: name, code: code,
+            starTier: starTier, avatarURL: avatarURL
+        )
+        .onTapGesture { onTap(data.id) }
     }
 
     private var directionArrow: some View {

@@ -40,12 +40,9 @@ struct KudosCardPersonInfo: View {
         Group {
             if let url = avatarURL {
                 AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
+                    if let image = phase.image {
                         image.resizable().scaledToFill()
-                    case .empty, .failure:
-                        placeholderImage
-                    @unknown default:
+                    } else {
                         placeholderImage
                     }
                 }
