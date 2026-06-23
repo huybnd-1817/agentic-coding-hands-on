@@ -116,18 +116,19 @@ private extension KudosViewContainer {
             id: kudos.id,
             senderName: kudos.sender.displayName,
             senderCode: codeLabel(for: kudos.sender, departments: departments),
-            senderRole: starLabel(for: kudos.sender),
-            senderAvatarAssetName: avatarAsset(for: kudos.sender),
+            senderStarTier: StarTier.from(received: kudos.sender.kudosReceivedCount),
+            senderAvatarURL: kudos.sender.avatarURL,
             recipientName: kudos.recipient.displayName,
             recipientCode: codeLabel(for: kudos.recipient, departments: departments),
-            recipientRole: starLabel(for: kudos.recipient),
-            recipientAvatarAssetName: avatarAsset(for: kudos.recipient),
+            recipientStarTier: StarTier.from(received: kudos.recipient.kudosReceivedCount),
+            recipientAvatarURL: kudos.recipient.avatarURL,
             timestampText: formatter.string(from: kudos.createdAt),
             title: kudos.title,
             body: kudos.message,
             hashtags: kudos.hashtags.map { $0.tag.hasPrefix("#") ? String($0.tag.dropFirst()) : $0.tag },
             heartCount: kudos.heartCount,
-            isLikedByMe: kudos.isLikedByMe
+            isLikedByMe: kudos.isLikedByMe,
+            canLike: kudos.canLike
         )
     }
 
@@ -184,18 +185,6 @@ private extension KudosViewContainer {
             return department.code
         }
         return author.employeeCode ?? ""
-    }
-
-    // MARK: - Star tier label
-
-    static func starLabel(for author: KudosAuthor) -> String {
-        let tier = StarTier.from(received: author.kudosReceivedCount)
-        switch tier {
-        case .zero:  return String(localized: "kudos.starTier.zero")
-        case .one:   return String(localized: "kudos.starTier.one")
-        case .two:   return String(localized: "kudos.starTier.two")
-        case .three: return String(localized: "kudos.starTier.three")
-        }
     }
 
     // MARK: - Avatar asset name (local fallback until AsyncImage lands in phase-09)

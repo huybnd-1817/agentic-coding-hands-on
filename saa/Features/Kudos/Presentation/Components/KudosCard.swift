@@ -5,10 +5,14 @@ import SwiftUI
 ///
 /// Anatomy (top → bottom, gap 8pt):
 ///   1. `trao nhận` row — `KudosCardPersonInfo` sender + arrow + recipient.
+///      Sender (B.3.2) and recipient (B.3.6) each carry a `KudosStarBadge`
+///      rendering 1–3 gold ★ icons per `StarTier` (10/20/50 thresholds).
 ///   2. Gold 1pt divider.
 ///   3. Content block: timestamp · bold title · body quote box · hashtag row.
+///      Hashtag row caps at 5 inline tags + "…" overflow pill (TC_GUI_004).
 ///   4. Gold 1pt divider.
 ///   5. Action row: heart count+icon | Copy Link | Xem chi tiết.
+///      Heart is disabled + greyed when `canLike == false` (TC_FUN_008).
 ///
 /// `bodyLineLimit` switches truncation: 3 lines for carousel, 5 for feed.
 /// All tap targets fire typed callbacks; no internal state is held.
@@ -49,22 +53,33 @@ struct KudosCard: View {
 
     // MARK: - Trao nhận row
 
+    /// Figma B.3 places sender info flush-left (x 62..170), arrow centered
+    /// (x 179..195, mid 187 = card inner centre 186.5), recipient flush-right
+    /// (x 203..311). Spacers push the info blocks to the card edges so the
+    /// arrow lands on the geometric centre regardless of device width.
     private var traoNhanRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             KudosCardPersonInfo(
                 name: data.senderName, code: data.senderCode,
-                role: data.senderRole, avatarAssetName: data.senderAvatarAssetName
+                starTier: data.senderStarTier,
+                avatarURL: data.senderAvatarURL
             )
             .onTapGesture { onSenderTap(data.id) }
 
+            Spacer(minLength: 0)
+
             directionArrow
+
+            Spacer(minLength: 0)
 
             KudosCardPersonInfo(
                 name: data.recipientName, code: data.recipientCode,
-                role: data.recipientRole, avatarAssetName: data.recipientAvatarAssetName
+                starTier: data.recipientStarTier,
+                avatarURL: data.recipientAvatarURL
             )
             .onTapGesture { onRecipientTap(data.id) }
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 62)
     }
 
@@ -120,22 +135,49 @@ struct KudosCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 5.554))
     }
 
+    /// TC_GUI_004 / B.4.3 — single line, up to 5 tags, "…" pill when more.
+    ///
+    /// Each tag is capped at `tagMaxWidth` and individually truncated so a
+    /// single long hashtag can't swallow the row and push the overflow pill
+    /// off-screen. The overflow "…" is laid out with `.layoutPriority(1)` so
+    /// it survives even when earlier tags compete for space.
     private var hashtagRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                ForEach(data.hashtags, id: \.self) { tag in
-                    Button { onHashtagTap(tag) } label: {
-                        Text("#\(tag)")
-                            .font(.custom("Montserrat-Regular", size: 10))
-                            .foregroundColor(Color.kudosHashtagRed).tracking(0.231)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("kudos.card.hashtag.\(tag)")
+        HStack(spacing: 4) {
+            ForEach(visibleHashtags, id: \.self) { tag in
+                Button { onHashtagTap(tag) } label: {
+                    Text("#\(tag)")
+                        .font(.custom("Montserrat-Regular", size: 10))
+                        .foregroundColor(Color.kudosHashtagRed).tracking(0.231)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: KudosCard.tagMaxWidth, alignment: .leading)
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("kudos.card.hashtag.\(tag)")
+            }
+            if data.hashtags.count > KudosCard.hashtagDisplayCap {
+                Text("…")
+                    .font(.custom("Montserrat-Regular", size: 10))
+                    .foregroundColor(Color.kudosHashtagRed)
+                    .layoutPriority(1)
+                    .accessibilityIdentifier("kudos.card.hashtag.overflow")
             }
         }
-        .frame(height: 23)
+        .frame(height: 23, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
+
+    /// First N hashtags shown inline; remainder collapses behind the "…" pill.
+    private var visibleHashtags: [String] {
+        Array(data.hashtags.prefix(KudosCard.hashtagDisplayCap))
+    }
+
+    /// Per TC_GUI_004 — maximum hashtags shown on one line before "…" overflow.
+    private static let hashtagDisplayCap = 5
+
+    /// Per-tag width cap so one long hashtag (e.g. "#supercalifragilistic")
+    /// can't consume the row and push the "…" overflow off-screen.
+    private static let tagMaxWidth: CGFloat = 80
 
     // MARK: - Action row
 
@@ -149,6 +191,9 @@ struct KudosCard: View {
         .frame(height: 24)
     }
 
+    /// TC_FUN_008 — sender cannot like their own Kudos. `canLike` is false
+    /// when the current user authored this post; the heart is greyed and
+    /// the button becomes a no-op so taps are silently ignored.
     private var heartButton: some View {
         Button { onLike(data.id) } label: {
             HStack(spacing: 1.851) {
@@ -157,12 +202,19 @@ struct KudosCard: View {
                     .foregroundColor(Color.kudosCardText).monospacedDigit()
                 Image(systemName: data.isLikedByMe ? "heart.fill" : "heart")
                     .font(.system(size: 12))
-                    .foregroundColor(data.isLikedByMe ? .red : Color.kudosCardText)
+                    .foregroundColor(heartColor)
             }
         }
         .buttonStyle(.plain)
+        .disabled(!data.canLike)
+        .opacity(data.canLike ? 1.0 : 0.4)
         .accessibilityLabel("\(data.heartCount) hearts")
         .accessibilityIdentifier("kudos.card.heart")
+    }
+
+    private var heartColor: Color {
+        guard data.canLike else { return Color.kudosCardSubtext }
+        return data.isLikedByMe ? .red : Color.kudosCardText
     }
 
     private var copyLinkButton: some View {

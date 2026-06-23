@@ -4,6 +4,20 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/kudos] — 2026-06-23 — Kudos Highlight Card refinement (B.3)
+
+### Kudos card UI: star-tier badges, hashtag overflow, self-like guard
+
+**What changed:**
+- `KudosCardData`: `senderRole`/`recipientRole` (`String`) replaced by `senderStarTier`/`recipientStarTier` (`StarTier`); `canLike: Bool` added (TC_FUN_008)
+- `KudosCardPersonInfo`: new `KudosStarBadge` view (1–3 gold ★ icons per `StarTier`); removes `KudosRoleBadge` text pill
+- `KudosCard`: hashtag row capped at 5 + "…" overflow (TC_GUI_004); heart button disabled when `canLike == false`
+- `KudosViewContainer`: adapter passes `StarTier.from(received:)` directly; `starLabel(for:)` helper removed
+
+No domain entities, public API, or database changes. No new dependencies.
+
+---
+
 ## [feature/kudos] — 2026-06-19
 
 ### Sun*Kudos feature

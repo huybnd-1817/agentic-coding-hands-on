@@ -43,9 +43,13 @@ struct KudosAllSection: View {
 
     // MARK: - List content
 
+    /// Per-section display cap — feed loads up to 20, but the All Kudos
+    /// preview section shows the top 3. Tap "View all Kudos" to see the rest.
+    private static let previewItemCap = 3
+
     private var listContent: some View {
         VStack(alignment: .center, spacing: 12) {
-            ForEach(kudos) { card in
+            ForEach(kudos.prefix(KudosAllSection.previewItemCap)) { card in
                 KudosCard(
                     data: card,
                     bodyLineLimit: 5,
@@ -60,7 +64,7 @@ struct KudosAllSection: View {
 
             viewAllButton
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 45)
     }
 
     // MARK: - View all button
@@ -94,7 +98,7 @@ struct KudosAllSection: View {
             .foregroundColor(Color.white.opacity(0.6))
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 45)
             .padding(.vertical, 32)
             .accessibilityIdentifier("kudos.all.emptyState")
     }

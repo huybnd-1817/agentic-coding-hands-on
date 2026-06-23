@@ -45,7 +45,15 @@ struct KudosHighlightSection: View {
     // MARK: - Constants
 
     private let cardWidth: CGFloat        = 273
+    /// Figma B.3 (node 6885:9092) frame height — locks the highlight card to
+    /// 255pt so cards don't drift to ~257pt when the body block grows by a
+    /// rounding pixel. The All Kudos feed uses auto height (5-line body).
+    private let cardHeight: CGFloat       = 255
     private let cardSpacing: CGFloat      = 16
+    /// Fallback used when the section's width is not yet known (first layout
+    /// pass) — matches the Figma 375pt canvas where `(375 − 273) / 2 = 51`.
+    /// At runtime `dynamicHorizontalMargin(for:)` recomputes per-device so the
+    /// snapped card stays centred on wider iPhones (393pt / 430pt).
     private let horizontalMargin: CGFloat = 51
     /// Figma chips are 129pt (nodes 6885:9088 / 6885:9089), sized for the
     /// Vietnamese label "Phòng ban". The English label "Department" requires
@@ -67,6 +75,29 @@ struct KudosHighlightSection: View {
                 .zIndex(10)
 
             carouselWithDots
+        }
+        // Re-anchor the carousel's `scrollPositionID` whenever the highlight
+        // ID set changes (filter applied, initial load, or empty→non-empty
+        // toggle). The modifier MUST live on the section body — not inside
+        // the carousel — because the carousel unmounts when `highlights` is
+        // empty (the empty-state branch in `carouselWithDots`), and a
+        // `.onChange` on an unmounted view can't catch the transition back
+        // to non-empty. Without this, scrolling to card 2, filtering to BOD
+        // (empty), then clearing the filter would remount the ScrollView at
+        // the stale `c2.id` while the VM had already reset
+        // `carouselIndex = 1` — pagination dot and visible card disagree.
+        //
+        // Like-toggles mutate cards in place without changing the ID set,
+        // so heart taps do not fire this re-anchor.
+        // iOS 16-compatible single-arg `.onChange` (the two-arg form is iOS 17+).
+        // Suppressing the iOS 17 deprecation warning is fine — the section is
+        // shared with the iOS 16 fallback carousel branch which also relies
+        // on this re-anchor working.
+        .onChange(of: highlights.map(\.id)) { newIds in
+            let firstId = newIds.first
+            if scrollPositionID != firstId {
+                scrollPositionID = firstId
+            }
         }
     }
 
@@ -152,33 +183,68 @@ struct KudosHighlightSection: View {
 
     // MARK: - Carousel + dots
 
+    @ViewBuilder
     private var carouselWithDots: some View {
-        VStack(spacing: 10) {
-            carouselWithSideButtons
-            KudosCarouselDots(
-                currentIndex: carouselIndex,
-                totalCount: max(highlights.count, 1),
-                onPrev: movePrev,
-                onNext: moveNext
-            )
-            .padding(.horizontal, 20)
+        if highlights.isEmpty {
+            emptyState
+        } else {
+            VStack(spacing: 10) {
+                carouselWithSideButtons
+                KudosCarouselDots(
+                    currentIndex: carouselIndex,
+                    totalCount: max(highlights.count, 1),
+                    onPrev: movePrev,
+                    onNext: moveNext
+                )
+                .padding(.horizontal, 20)
+            }
         }
+    }
+
+    // MARK: - Empty state (TC_IOS_KUDOS_FUN_002 — shown when filter has no
+    // matches OR no Kudos exist at all). Mirrors `KudosAllSection.emptyState`
+    // so both feeds carry the same visual treatment.
+    private var emptyState: some View {
+        Text(LocalizedStringKey("kudos.list.empty"))
+            .font(.custom("Montserrat-Regular", size: 14))
+            .foregroundColor(Color.white.opacity(0.6))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 32)
+            .accessibilityIdentifier("kudos.highlight.emptyState")
     }
 
     // MARK: - Carousel + left/right edge buttons (Figma 6885:9094 / 6885:9096)
 
     private var carouselWithSideButtons: some View {
-        ZStack(alignment: .center) {
-            carousel
+        GeometryReader { proxy in
+            let margin = dynamicHorizontalMargin(for: proxy.size.width)
+            ZStack(alignment: .center) {
+                carousel(horizontalMargin: margin)
+                    .frame(height: 256)
+                HStack(spacing: 0) {
+                    sideButton(direction: .prev)
+                    Spacer()
+                    sideButton(direction: .next)
+                }
                 .frame(height: 256)
-            HStack(spacing: 0) {
-                sideButton(direction: .prev)
-                Spacer()
-                sideButton(direction: .next)
+                .allowsHitTesting(true)
             }
-            .frame(height: 256)
-            .allowsHitTesting(true)
+            .frame(width: proxy.size.width, height: 256)
         }
+        .frame(height: 256)
+    }
+
+    /// Symmetric leading/trailing content margin so `viewAligned` snaps the card
+    /// to the exact horizontal centre of the section regardless of device width.
+    /// `(width − cardWidth) / 2` is the only value that keeps the trailing
+    /// margin equal to the leading margin after the snap settles.  Clamped to
+    /// `horizontalMargin` so the card never overflows the section on narrow
+    /// screens (e.g. iPhone SE 320pt).
+    private func dynamicHorizontalMargin(for width: CGFloat) -> CGFloat {
+        guard width > 0 else { return horizontalMargin }
+        return max(horizontalMargin, (width - cardWidth) / 2)
     }
 
     private enum CarouselSide { case prev, next }
@@ -216,7 +282,7 @@ struct KudosHighlightSection: View {
     // MARK: - Carousel (iOS 17 snap + scrollTransition)
 
     @ViewBuilder
-    private var carousel: some View {
+    private func carousel(horizontalMargin: CGFloat) -> some View {
         if #available(iOS 17.0, *) {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: cardSpacing) {
@@ -231,7 +297,7 @@ struct KudosHighlightSection: View {
                             onSenderTap: onSenderTap,
                             onRecipientTap: onRecipientTap
                         )
-                        .frame(width: cardWidth)
+                        .frame(width: cardWidth, height: cardHeight)
                         .scrollTransition(.animated(.easeInOut(duration: 0.25))) { content, phase in
                             content
                                 .scaleEffect(phase.isIdentity ? 1.0 : 0.88)
@@ -266,7 +332,7 @@ struct KudosHighlightSection: View {
                             onSenderTap: onSenderTap,
                             onRecipientTap: onRecipientTap
                         )
-                        .frame(width: cardWidth)
+                        .frame(width: cardWidth, height: cardHeight)
                     }
                 }
                 .padding(.horizontal, horizontalMargin)

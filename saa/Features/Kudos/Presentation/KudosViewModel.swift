@@ -49,7 +49,12 @@ final class KudosViewModel: ObservableObject {
     @Published private(set) var stats: UserStats = .zero
     @Published private(set) var topRecipients: [KudosAuthor] = []
 
-    @Published private(set) var carouselIndex: Int = 0
+    /// 1-based current page index for the highlight carousel.
+    /// `KudosCarouselDots` displays `currentIndex/total` verbatim, so the
+    /// initial state and post-filter resets MUST be `1` (not `0`) to avoid
+    /// the "0/N" rendering bug after filter changes (TC_FUN_005 expects
+    /// "card 1 / position đầu tiên").
+    @Published private(set) var carouselIndex: Int = 1
     @Published private(set) var selectedHashtagId: HashtagID? = nil
     @Published private(set) var selectedDepartmentId: DepartmentID? = nil
 
@@ -130,18 +135,20 @@ final class KudosViewModel: ObservableObject {
     // MARK: - Filter setters
 
     /// Selects or clears the hashtag filter. Selecting the same id twice clears it (re-tap-to-clear).
+    /// Resets carousel to card 1 per TC_FUN_005 (1-based index — see `carouselIndex` doc).
     func setHashtagFilter(_ id: HashtagID?) async {
         let next: HashtagID? = (id == selectedHashtagId) ? nil : id
         selectedHashtagId = next
-        carouselIndex = 0
+        carouselIndex = 1
         await reload()
     }
 
     /// Selects or clears the department filter. Selecting the same id twice clears it.
+    /// Resets carousel to card 1 per TC_FUN_005.
     func setDepartmentFilter(_ id: DepartmentID?) async {
         let next: DepartmentID? = (id == selectedDepartmentId) ? nil : id
         selectedDepartmentId = next
-        carouselIndex = 0
+        carouselIndex = 1
         await reload()
     }
 

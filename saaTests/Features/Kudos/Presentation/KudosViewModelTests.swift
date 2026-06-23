@@ -129,8 +129,10 @@ final class KudosViewModelTests: XCTestCase {
 
         XCTAssertEqual(vm.selectedHashtagId, filterId)
         XCTAssertGreaterThan(repo.fetchHighlightCalls, 0)
-        // TC_FUN_005: carousel must reset to index 0 when a new filter is applied.
-        XCTAssertEqual(vm.carouselIndex, 0)
+        // TC_FUN_005: carousel must reset to card 1 (1-based) when a new
+        // filter is applied — `KudosCarouselDots` renders the index verbatim,
+        // so 0 would surface as "0/N" in the pagination chrome.
+        XCTAssertEqual(vm.carouselIndex, 1)
     }
 
     func testSetHashtagFilter_reTapSame_clearsFilter() async {
@@ -165,8 +167,9 @@ final class KudosViewModelTests: XCTestCase {
 
         XCTAssertEqual(vm.selectedDepartmentId, deptId)
         XCTAssertGreaterThan(repo.fetchHighlightCalls, 0)
-        // TC_FUN_005: carousel must reset to index 0 when a new filter is applied.
-        XCTAssertEqual(vm.carouselIndex, 0)
+        // TC_FUN_005: carousel must reset to card 1 (1-based) when a new
+        // filter is applied — see hashtag-filter test for full rationale.
+        XCTAssertEqual(vm.carouselIndex, 1)
     }
 
     func testSetDepartmentFilter_reTapSame_clearsFilter() async {

@@ -42,7 +42,7 @@ extension SupabaseKudosRepository {
             // → PostgrestTransformBuilder is one-way in the Supabase Swift SDK).
             let baseQuery = client
                 .from("kudos")
-                .select(kudosSelectClause)
+                .select(kudosSelectClause(for: filter))
                 .eq("status", value: "active")
                 .is("deleted_at", value: nil)
             let filtered = applyFilter(filter, to: baseQuery)
@@ -69,7 +69,7 @@ extension SupabaseKudosRepository {
             // Filters must be applied before ordering/range transforms.
             let baseQuery = client
                 .from("kudos")
-                .select(kudosSelectClause)
+                .select(kudosSelectClause(for: filter))
                 .eq("status", value: "active")
                 .is("deleted_at", value: nil)
             let filtered = applyFilter(filter, to: baseQuery)
@@ -204,21 +204,25 @@ private extension SupabaseKudosRepository {
 
     /// Supabase nested-select string for the full kudos shape with joins.
     ///
+    /// Filter-aware embedding: when a filter is active, the corresponding
+    /// embed is upgraded to `!inner` so PostgREST excludes rows that don't
+    /// match (rather than nullifying the embed and returning the outer row
+    /// anyway, which produced the "BOD shows blank recipient" and
+    /// "filtered list contains non-matching kudos" bugs).
+    ///
     /// Aggregate strategy: `reactions:kudos_reactions(count)` returns an array
     /// with one element `{"count": N}` — decoded into `KudosDTO.reactions`.
     /// `KudosDTO.heartCount` takes `.first?.count ?? 0`.
-    ///
-    /// Fallback: if `heartCount` is 0 for every row in a non-empty result set,
-    /// the repository caller should log a warning. A future migration can add a
-    /// `kudos_with_counts` view as a more reliable aggregate source.
-    var kudosSelectClause: String {
+    func kudosSelectClause(for filter: KudosFilter) -> String {
         // user_stats nested join returns a JSON object, not a scalar — alias as "user_stats"
         // so it decodes into KudosProfileUserStatsDTO (field name must match CodingKey).
-        """
+        let recipientJoinHint = (filter.departmentId != nil) ? "!inner" : ""
+        let hashtagJoinHint = (filter.hashtagId != nil) ? "!inner" : ""
+        return """
         *,
         sender:profiles!sender_id(id, name, avatar_url, email, department_id, user_stats(kudos_received_count)),
-        recipient:profiles!recipient_id(id, name, avatar_url, email, department_id, user_stats(kudos_received_count)),
-        kudos_hashtags(hashtag:hashtags(id, tag)),
+        recipient:profiles!recipient_id\(recipientJoinHint)(id, name, avatar_url, email, department_id, user_stats(kudos_received_count)),
+        kudos_hashtags\(hashtagJoinHint)(hashtag:hashtags(id, tag)),
         reactions:kudos_reactions(count)
         """
     }

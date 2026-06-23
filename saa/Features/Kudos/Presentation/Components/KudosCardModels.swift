@@ -24,18 +24,20 @@ struct KudosCardData: Identifiable, Hashable {
     let senderName: String
     /// Sender employee code (e.g. "CECV10")
     let senderCode: String
-    /// Sender role badge label (e.g. "Rising Hero")
-    let senderRole: String
-    /// Asset name for sender avatar `Image("...")`.
-    let senderAvatarAssetName: String
+    /// Sender star tier (B.3.2) — derived from `KudosAuthor.kudosReceivedCount`.
+    let senderStarTier: StarTier
+    /// Remote URL for sender avatar (B.3.1). When non-nil the card renders an
+    /// `AsyncImage`; falls back to the standard `person.crop.circle.fill`
+    /// SF Symbol while loading or on failure.
+    let senderAvatarURL: URL?
     /// Recipient display name (e.g. "Dương Xuân Huỳnh...")
     let recipientName: String
     /// Recipient employee code
     let recipientCode: String
-    /// Recipient role badge label (e.g. "Legend Hero")
-    let recipientRole: String
-    /// Asset name for recipient avatar `Image("...")`.
-    let recipientAvatarAssetName: String
+    /// Recipient star tier (B.3.6) — derived from `KudosAuthor.kudosReceivedCount`.
+    let recipientStarTier: StarTier
+    /// Remote URL for recipient avatar (B.3.5). Same fallback semantics as sender.
+    let recipientAvatarURL: URL?
     /// Pre-formatted timestamp string (e.g. "10:00 - 10/30/2025")
     let timestampText: String
     /// Gold bold title displayed on the card (e.g. "IDOL GIỚI TRẺ")
@@ -48,6 +50,8 @@ struct KudosCardData: Identifiable, Hashable {
     let heartCount: Int
     /// Whether the current user has liked this kudo
     var isLikedByMe: Bool
+    /// False when the current user is the sender — disables heart per TC_FUN_008.
+    let canLike: Bool
 }
 
 // MARK: - HashtagOption
@@ -84,86 +88,92 @@ extension KudosCardData {
             id: UUID(),
             senderName: "Huỳnh Dương Xuân...",
             senderCode: "CECV10",
-            senderRole: "Rising Hero",
-            senderAvatarAssetName: "kudos-card-avatar-male",
+            senderStarTier: .one,
+            senderAvatarURL: nil,
             recipientName: "Dương Xuân Huỳnh...",
             recipientCode: "CECV10",
-            recipientRole: "Legend Hero",
-            recipientAvatarAssetName: "kudos-card-avatar-recipient",
+            recipientStarTier: .three,
+            recipientAvatarURL: nil,
             timestampText: "10:00 - 10/30/2025",
             title: "IDOL GIỚI TRẺ",
             body: "Cảm ơn người em bình thường nhưng phi thường :D Cảm ơn sự chăm chỉ, cần mẫn của em đã tạo động lực rất lớn cho mọi người trong team.",
             hashtags: ["Dedicated", "Inspiring", "Hardworking"],
             heartCount: 1000,
-            isLikedByMe: false
+            isLikedByMe: false,
+            canLike: true
         ),
         KudosCardData(
             id: UUID(),
             senderName: "Nguyễn Văn Quy",
             senderCode: "HANV05",
-            senderRole: "Rising Hero",
-            senderAvatarAssetName: "kudos-card-avatar-male",
+            senderStarTier: .one,
+            senderAvatarURL: nil,
             recipientName: "Đỗ Hoàng Hiệp",
             recipientCode: "HANV02",
-            recipientRole: "Team Player",
-            recipientAvatarAssetName: "kudos-card-avatar-female",
+            recipientStarTier: .zero,
+            recipientAvatarURL: nil,
             timestampText: "09:00 - 10/28/2025",
             title: "NGÔI SAO TEAM",
             body: "Em luôn sẵn sàng hỗ trợ và chia sẻ kiến thức cho cả team. Sự nhiệt tình và tinh thần trách nhiệm của em là tấm gương cho tất cả mọi người.",
             hashtags: ["TeamPlayer", "Supportive", "Dedicated"],
             heartCount: 750,
-            isLikedByMe: true
+            isLikedByMe: true,
+            canLike: true
         ),
         KudosCardData(
             id: UUID(),
             senderName: "Dương Thúy An",
             senderCode: "HCMV08",
-            senderRole: "Legend Hero",
-            senderAvatarAssetName: "kudos-card-avatar-female",
+            senderStarTier: .three,
+            senderAvatarURL: nil,
             recipientName: "Mai Phương Thúy",
             recipientCode: "HCMV12",
-            recipientRole: "Rising Hero",
-            recipientAvatarAssetName: "kudos-card-avatar-recipient",
+            recipientStarTier: .one,
+            recipientAvatarURL: nil,
             timestampText: "14:30 - 10/25/2025",
             title: "BỨT PHÁ XUẤT SẮC",
             body: "Chị đã làm việc không mệt mỏi để hoàn thành dự án đúng deadline trong bối cảnh rất nhiều thách thức. Cả team rất tự hào về chị.",
-            hashtags: ["Excellence", "Breakthrough", "Inspiring"],
+            hashtags: ["Excellence", "Breakthrough", "Inspiring", "Dedicated", "Teamwork", "Leadership", "Innovation"],
             heartCount: 520,
-            isLikedByMe: false
+            isLikedByMe: false,
+            // Demo: self-sent kudos — heart disabled per TC_FUN_008.
+            canLike: false
         ),
         KudosCardData(
             id: UUID(),
             senderName: "Nguyễn Hoàng Linh",
             senderCode: "HANV15",
-            senderRole: "Team Player",
-            senderAvatarAssetName: "kudos-card-avatar-male",
+            senderStarTier: .zero,
+            senderAvatarURL: nil,
             recipientName: "Nguyễn Bá Chức",
             recipientCode: "HANV09",
-            recipientRole: "Rising Hero",
-            recipientAvatarAssetName: "kudos-card-avatar-recipient",
+            recipientStarTier: .two,
+            recipientAvatarURL: nil,
             timestampText: "11:00 - 10/22/2025",
             title: "ANH HÙNG THẦm LẶNG",
             body: "Anh luôn âm thầm giải quyết các vấn đề kỹ thuật phức tạp mà không kêu ca. Sự chuyên nghiệp và kiên nhẫn của anh giúp cả team tiến về phía trước.",
             hashtags: ["Dedicated", "Technical", "Silent Hero"],
             heartCount: 300,
-            isLikedByMe: false
+            isLikedByMe: false,
+            canLike: true
         ),
         KudosCardData(
             id: UUID(),
             senderName: "Lê Kiều Trang",
             senderCode: "HCMV20",
-            senderRole: "Rising Hero",
-            senderAvatarAssetName: "kudos-card-avatar-female",
+            senderStarTier: .one,
+            senderAvatarURL: nil,
             recipientName: "Nguyễn Văn Quy",
             recipientCode: "HANV05",
-            recipientRole: "Legend Hero",
-            recipientAvatarAssetName: "kudos-card-avatar-male",
+            recipientStarTier: .three,
+            recipientAvatarURL: nil,
             timestampText: "16:00 - 10/20/2025",
             title: "MENTOR TUYỆT VỜI",
             body: "Cảm ơn anh đã luôn hướng dẫn và chia sẻ kinh nghiệm một cách nhiệt tình. Nhờ có anh mà em hiểu được rất nhiều về nghề và về cách làm việc hiệu quả.",
             hashtags: ["Mentor", "Leadership", "Inspiring"],
             heartCount: 890,
-            isLikedByMe: true
+            isLikedByMe: true,
+            canLike: true
         )
     ]
 }
