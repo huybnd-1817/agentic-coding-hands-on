@@ -22,6 +22,9 @@ enum UITestScenario: String {
     case awardsError
     /// Signed-in + awards repo returns `[]` — `HomeAwardsSection` shows `AwardsEmptyView`.
     case awardsEmpty
+    /// Signed-in + Create Kudo form injected with MockKudosRepository + MockKudosImageUploader.
+    /// WriteKudoFormStubView detects this mode and bypasses Supabase.
+    case kudosCreate = "kudos.create"
 }
 
 // MARK: - XCUIApplication factory
