@@ -41,6 +41,17 @@ final class CreateKudoUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
+    /// Dismisses the iOS "Type English and Vietnamese" multilingual-keyboard
+    /// introduction sheet if it appears. The simulator shows this once per
+    /// fresh boot when a TextField first receives focus, and it covers the
+    /// bottom half of the screen — including the form's submit button.
+    private func dismissKeyboardIntroIfPresent(_ app: XCUIApplication) {
+        let cont = app.buttons["Continue"]
+        if cont.waitForExistence(timeout: 0.5) {
+            cont.tap()
+        }
+    }
+
     /// Launches the app in `kudos.create` mode, switches to the Kudos tab, and
     /// taps the "Send Kudos" button to present `CreateKudoViewContainer`.
     /// Returns the running app once `createKudo.root` is visible.
@@ -92,7 +103,12 @@ final class CreateKudoUITests: XCTestCase {
         recipientPicker.tap()
 
         // The dropdown appears — wait for any recipient row
-        let dropdown = element("kudos.create.recipientDropdown", in: app)
+        // The dropdown's wrapper VStack identifier doesn't reliably surface
+        // (SwiftUI flattens its accessibility element when child elements like
+        // the search TextField and recipient row Buttons have their own IDs).
+        // Use the search field as the "dropdown opened" signal — it lives only
+        // inside the dropdown overlay.
+        let dropdown = element("kudos.create.recipientSearchField", in: app)
         XCTAssertTrue(
             dropdown.waitForExistence(timeout: 3),
             "Recipient dropdown must appear after tapping picker"
@@ -115,6 +131,9 @@ final class CreateKudoUITests: XCTestCase {
             "Title text input must exist"
         )
         titleInput.tap()
+        // Dismiss the iOS multilingual-keyboard intro before typing — it can
+        // pop up on first focus and would otherwise eat keystrokes.
+        dismissKeyboardIntroIfPresent(app)
         titleInput.typeText("Người truyền động lực cho tôi")
 
         // 3. Type message — TextEditor in the form card
@@ -134,27 +153,35 @@ final class CreateKudoUITests: XCTestCase {
         )
         hashtagAdd.tap()
 
-        let hashtagDropdown = element("kudos.createHashtag.dropdown", in: app)
-        XCTAssertTrue(
-            hashtagDropdown.waitForExistence(timeout: 3),
-            "Hashtag dropdown must appear after tapping add"
-        )
-
-        // Tap the first hashtag row in the dropdown (identifier: kudos.createHashtag.row.<tag>)
+        // Hashtag dropdown wrapper identifier doesn't reliably surface (its
+        // children are Buttons that take their own identifiers). Detect "dropdown
+        // opened" via the first hashtag row appearing — those have stable IDs
+        // `kudos.createHashtag.row.<tag>`.
         let firstHashtagRow = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier BEGINSWITH 'kudos.createHashtag.row.'"))
             .firstMatch
-        if firstHashtagRow.waitForExistence(timeout: 2) {
-            firstHashtagRow.tap()
-        } else {
-            // Fallback: tap the first visible button inside the dropdown container
-            hashtagDropdown.buttons.firstMatch.tap()
-        }
+        XCTAssertTrue(
+            firstHashtagRow.waitForExistence(timeout: 3),
+            "Hashtag dropdown rows must appear after tapping add"
+        )
+        firstHashtagRow.tap()
 
         // Dismiss dropdown by tapping outside
         app.tap()
 
         // 5. Tap Send
+        // Make sure the keyboard intro isn't blocking the submit button area.
+        dismissKeyboardIntroIfPresent(app)
+        // Dismiss the soft keyboard so it doesn't overlap the submit button's
+        // hit area. Tapping the form header (a non-interactive StaticText)
+        // falls through to the form card's onTapGesture which calls
+        // resignFirstResponder — reliable in iOS 26 where swipeUp doesn't
+        // always trigger scrollDismissesKeyboard from the keyboard region.
+        if app.keyboards.firstMatch.exists {
+            let header = element("createKudo.header.label", in: app)
+            if header.exists { header.tap() }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
         let submitBtn = element("createKudo.action.submit", in: app)
         XCTAssertTrue(
             submitBtn.waitForExistence(timeout: 3),
@@ -203,7 +230,12 @@ final class CreateKudoUITests: XCTestCase {
         )
         recipientPicker.tap()
 
-        let dropdown = element("kudos.create.recipientDropdown", in: app)
+        // The dropdown's wrapper VStack identifier doesn't reliably surface
+        // (SwiftUI flattens its accessibility element when child elements like
+        // the search TextField and recipient row Buttons have their own IDs).
+        // Use the search field as the "dropdown opened" signal — it lives only
+        // inside the dropdown overlay.
+        let dropdown = element("kudos.create.recipientSearchField", in: app)
         XCTAssertTrue(
             dropdown.waitForExistence(timeout: 3),
             "Recipient dropdown must appear"
@@ -265,12 +297,20 @@ final class CreateKudoUITests: XCTestCase {
             "Success toast must NOT appear when hashtags are missing"
         )
 
-        // 8. Assert: hashtag field shows error styling (hasError = true means the
-        // row is visible — we verify the row exists, not that it changed colour,
-        // since XCUITest cannot inspect SwiftUI color tokens directly).
+        // 8. Assert: the required-fields banner appeared. `createKudo.requiredFieldsError`
+        // is rendered only when `showRequiredFieldsError == true` (i.e. submitAttempted &&
+        // !fieldErrors.isEmpty), so its presence is the actual signal that submit was
+        // blocked by validation. `waitForExistence` polls past the SwiftUI layout pass
+        // that fires when `submitAttempted` flips.
+        XCTAssertTrue(
+            element("createKudo.requiredFieldsError", in: app).waitForExistence(timeout: 3),
+            "Required-fields error banner must appear when hashtags are missing"
+        )
+
+        // 9. Sanity: hashtag row is still in the tree (always rendered, not conditional).
         XCTAssertTrue(
             element("createKudo.hashtag.row", in: app).exists,
-            "Hashtag row must remain visible showing error state"
+            "Hashtag row must remain visible"
         )
     }
 }
