@@ -20,6 +20,10 @@ struct CreateKudoRecipientField: View {
             searchButton
         }
         .frame(height: 40)
+        // `.contain` preserves child identifiers (the inner picker Button) — without
+        // it, SwiftUI flattens the wrapper's identifier onto descendants and the
+        // Button's own `createKudo.recipient.picker` becomes unreachable to XCUITest.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.recipient.row")
     }
 

@@ -23,6 +23,7 @@ struct CreateKudoActionBar: View {
             sendButton
         }
         .frame(height: 40)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.actionBar")
     }
 

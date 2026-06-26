@@ -23,6 +23,7 @@ struct CreateKudoMessageEditor: View {
             editorBlock
             hintText
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.message.editor")
     }
 

@@ -53,6 +53,7 @@ struct RecipientDropdown: View {
                 .stroke(Color(red: 153.0/255, green: 140.0/255, blue: 95.0/255), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("kudos.create.recipientDropdown")
     }
 

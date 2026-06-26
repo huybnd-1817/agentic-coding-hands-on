@@ -108,6 +108,10 @@ struct CreateKudoViewContainer: View {
             }
         }
         .task { await viewModel.onAppear() }
+        // `.contain` stops the root identifier from bleeding into descendants
+        // (e.g. the nav back chevron Button would otherwise inherit `createKudo.root`
+        // instead of its own `createKudo.nav.back`).
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.root")
     }
 

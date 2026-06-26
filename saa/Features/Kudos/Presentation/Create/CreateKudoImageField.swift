@@ -30,6 +30,7 @@ struct CreateKudoImageField: View {
             fieldLabel
             imageColumn
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.image.row")
     }
 

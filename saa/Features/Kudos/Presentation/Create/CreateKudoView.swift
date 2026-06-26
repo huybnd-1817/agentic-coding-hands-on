@@ -137,7 +137,6 @@ struct CreateKudoView: View {
         .onChange(of: anonymousNickname) { newVal in
             if nicknameBinding != newVal { nicknameBinding = newVal }
         }
-        .accessibilityIdentifier("createKudo.root")
     }
 
     // MARK: - Screen background
@@ -177,16 +176,21 @@ struct CreateKudoView: View {
 
                 // Nav content row (height 42pt)
                 HStack(spacing: 0) {
-                    // Back button (Figma 6885:9892 mm_media_back, 24x24)
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 24, height: 24)
-                        .frame(width: 42, height: 42)
-                        .contentShape(Rectangle())
-                        .onTapGesture { onCancel() }
-                        .padding(.leading, 7)
-                        .accessibilityIdentifier("createKudo.nav.back")
+                    // Back button (Figma 6885:9892 mm_media_back, 24x24).
+                    // Use Button instead of Image+onTapGesture so the accessibility
+                    // identifier reliably surfaces for XCUITest queries (an Image
+                    // with a tap gesture is not a discoverable accessibility element).
+                    Button(action: onCancel) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 24, height: 24)
+                            .frame(width: 42, height: 42)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 7)
+                    .accessibilityIdentifier("createKudo.nav.back")
 
                     Spacer()
 

@@ -22,6 +22,7 @@ struct CreateKudoHashtagField: View {
             fieldLabel
             tagsArea
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.hashtag.row")
     }
 

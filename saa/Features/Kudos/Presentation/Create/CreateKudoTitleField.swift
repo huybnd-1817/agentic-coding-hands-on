@@ -21,6 +21,7 @@ struct CreateKudoTitleField: View {
             }
             .frame(minHeight: 40)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("createKudo.title.row")
     }
 
@@ -60,6 +61,11 @@ struct CreateKudoTitleField: View {
                 .tint(Color.createKudoText)
                 .multilineTextAlignment(.leading)
                 .onChange(of: title) { onTitleChange($0) }
+                // Identifier lives on the TextField (not the ZStack wrapper) so
+                // XCUITest's `tap()` + `typeText()` hit the editable input rather
+                // than the placeholder StaticText, which would otherwise be the
+                // first match inside the ZStack and is not focusable.
+                .accessibilityIdentifier("createKudo.title.input")
         }
         .padding(.horizontal, 10.723)
         .padding(.vertical, 7.149)
@@ -70,7 +76,6 @@ struct CreateKudoTitleField: View {
                 .stroke(hasError ? Color.createKudoRequired : Color.createKudoBorder, lineWidth: 0.447)
         )
         .clipShape(RoundedRectangle(cornerRadius: 3.574))
-        .accessibilityIdentifier("createKudo.title.input")
     }
 }
 
