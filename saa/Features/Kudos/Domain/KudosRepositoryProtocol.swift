@@ -53,6 +53,15 @@ protocol KudosRepositoryProtocol: Sendable {
     /// - Throws: `KudosError` on network or auth failure.
     func fetchTopGiftRecipients(limit: Int) async throws -> [KudosAuthor]
 
+    /// Returns all active profiles minus the current user for the Create Kudo recipient picker.
+    ///
+    /// Fetches `profiles` ordered by name, excludes the current authenticated user.
+    /// Results are cached in `CreateKudoViewModel` for the form lifetime.
+    ///
+    /// - Returns: Array of `ProfileSummary` sorted by display name.
+    /// - Throws: `KudosError.notAuthenticated` when no session; `KudosError.network` on failure.
+    func fetchEligibleRecipients() async throws -> [ProfileSummary]
+
     /// Returns the currently active event bonus, or nil when no bonus window is open.
     ///
     /// - Parameter now: The reference timestamp for window comparison (injected for testability).
@@ -78,4 +87,22 @@ protocol KudosRepositoryProtocol: Sendable {
 
     /// Returns the UUID of the currently authenticated user, or nil when unauthenticated.
     func currentUserId() async -> UUID?
+
+    /// Persists a new kudos post and its attachments, then returns the created entity.
+    ///
+    /// The caller is responsible for:
+    /// 1. Uploading images via `KudosImageUploaderProtocol` and populating
+    ///    `request.attachments` with the resulting `KudosAttachment` values.
+    /// 2. Passing a fully-validated `CreateKudoRequest` (via `CreateKudoValidator`).
+    ///
+    /// On success the returned `Kudos` is suitable for optimistic prepend into the
+    /// feed via `kudosViewModel.prependKudos(_:)` (clarifications.md §post-submit).
+    ///
+    /// - Parameter request: Validated create-kudo payload.
+    /// - Returns: The newly persisted `Kudos` entity.
+    /// - Throws: `KudosError.createDenied` when RLS rejects the INSERT;
+    ///   `KudosError.recipientSelfBlocked` when the server detects sender == recipient;
+    ///   `KudosError.notAuthenticated` when the session has expired;
+    ///   `KudosError.network` on connectivity failure.
+    func createKudo(_ request: CreateKudoRequest) async throws -> Kudos
 }
