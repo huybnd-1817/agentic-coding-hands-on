@@ -140,6 +140,11 @@ final class KudosLocalizationKeysExistTests: XCTestCase {
     func testErrorCannotLikeOwnKudos() { assertKeyExists("kudos.error.cannotLikeOwnKudos") }
     func testErrorAlreadyLiked() { assertKeyExists("kudos.error.alreadyLiked") }
     func testErrorUnknown() { assertKeyExists("kudos.error.unknown") }
+    func testErrorCreateDenied() { assertKeyExists("kudos.error.createDenied") }
+    func testErrorRecipientSelfBlocked() { assertKeyExists("kudos.error.recipientSelfBlocked") }
+    func testErrorAttachmentUploadFailed() { assertKeyExists("kudos.error.attachmentUploadFailed") }
+    func testErrorImageTooLarge() { assertKeyExists("kudos.error.imageTooLarge") }
+    func testErrorUnsupportedImageType() { assertKeyExists("kudos.error.unsupportedImageType") }
 
     // MARK: - kudos.retry
 

@@ -483,6 +483,7 @@ private func makeKudos(
         anonymousNickname: nil,
         hashtags: [],
         photoURL: nil,
+        attachments: [],
         heartCount: heartCount,
         isLikedByMe: isLikedByMe,
         canLike: canLike,

@@ -27,7 +27,7 @@ final class LoadKudosScreenUseCaseTests: XCTestCase {
             recipient: KudosAuthor(userId: UUID(), displayName: "R", employeeCode: nil, avatarURL: nil, departmentId: nil, kudosReceivedCount: 0),
             title: "T", message: "M",
             isAnonymous: false, anonymousNickname: nil,
-            hashtags: [], photoURL: nil,
+            hashtags: [], photoURL: nil, attachments: [],
             heartCount: heart, isLikedByMe: false, canLike: true,
             shareURL: nil, createdAt: Date(timeIntervalSince1970: 0)
         )

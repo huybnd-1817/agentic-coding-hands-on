@@ -55,7 +55,8 @@ final class KudosMapperTests: XCTestCase {
         recipient: KudosProfileDTO? = nil,
         isAnonymous: Bool = false,
         anonymousNickname: String? = nil,
-        hashtags: [KudosHashtagJoinDTO]? = nil
+        hashtags: [KudosHashtagJoinDTO]? = nil,
+        attachments: [KudosAttachmentDTO]? = nil
     ) -> KudosDTO {
         KudosDTO(
             id: UUID(),
@@ -72,6 +73,7 @@ final class KudosMapperTests: XCTestCase {
             sender: sender,
             recipient: recipient,
             kudos_hashtags: hashtags,
+            kudos_attachments: attachments,
             reactions: [KudosReactionCountDTO(count: 3)]
         )
     }
