@@ -86,14 +86,23 @@ saa/
 │       │   ├── KudosFilter.swift          # value type
 │       │   ├── StarTier.swift             # enum
 │       │   ├── UserStats.swift            # entity
+│       │   ├── CreateKudoRequest.swift    # value type (feature/create-kudos)
+│       │   ├── CreateKudoValidator.swift  # pure validator (feature/create-kudos)
+│       │   ├── CreateKudoFieldError.swift # validation error enum (feature/create-kudos)
+│       │   ├── KudosAttachment.swift      # entity (feature/create-kudos)
+│       │   ├── KudosImageDraft.swift      # value type (feature/create-kudos)
+│       │   ├── KudosImageUploaderProtocol.swift  # protocol (feature/create-kudos)
 │       │   ├── KudosRepositoryProtocol.swift
 │       │   ├── KudosError.swift           # pure enum
 │       │   └── UseCases/
 │       │       ├── LoadKudosScreenUseCase.swift
 │       │       └── ToggleKudosReactionUseCase.swift
 │       ├── Data/
-│       │   ├── DTO/                       # Supabase codable DTOs
-│       │   ├── SupabaseKudosRepository.swift
+│       │   ├── DTO/                       # Supabase codable DTOs (incl. CreateKudo* DTOs)
+│       │   ├── SupabaseKudosRepository.swift  # createKudo added (feature/create-kudos)
+│       │   ├── SupabaseStorageImageUploader.swift  # (feature/create-kudos)
+│       │   ├── KudosImageResizer.swift    # (feature/create-kudos)
+│       │   ├── CreateKudoMapper.swift     # (feature/create-kudos)
 │       │   ├── KudosMapper.swift
 │       │   ├── DepartmentMapper.swift
 │       │   ├── HashtagMapper.swift
@@ -106,6 +115,14 @@ saa/
 │           ├── KudosViewModel.swift       # @MainActor ObservableObject
 │           ├── KudosViewModel+Likes.swift # reaction toggle extension
 │           ├── Components/               # KudosCard, filter chips, carousel dots
+│           ├── Create/                   # compose flow (feature/create-kudos)
+│           │   ├── CreateKudoViewContainer.swift
+│           │   ├── CreateKudoView.swift
+│           │   ├── CreateKudoViewModel.swift
+│           │   ├── CreateKudoComposer.swift
+│           │   ├── RecipientDropdown.swift / HashtagDropdown.swift
+│           │   ├── CreateKudoImageField.swift / MarkdownToolbar.swift
+│           │   └── CreateKudoAnonymousToggle.swift / CreateKudoActionBar.swift
 │           ├── Filters/                  # department + hashtag filter sheets
 │           └── Sections/                 # Hero, Highlight, All, Stats, etc.
 └── Shared/
@@ -146,6 +163,9 @@ saaTests/
 └── TestSupport/StubSupabaseClient.swift
 saaUITests/
 ├── LoginFlowUITests.swift
+├── CreateKudoUITests.swift                # TC_WRITE_FUN_001 + TC_WRITE_FUN_002 (feature/create-kudos)
+├── KudosTabUITests.swift
+├── HomeIntegrationUITests.swift
 ├── saaUITests.swift
 └── TestSupport/UITestHelpers.swift
 ```
@@ -191,11 +211,14 @@ All tables live in the Supabase `public` schema. RLS is enabled on every table. 
 | `profiles` | feature/home | Altered in feature/kudos: `department_id` FK added |
 | `departments` | feature/kudos | Lookup table; SELECT to `authenticated` |
 | `hashtags` | feature/kudos | Lookup table; SELECT to `authenticated` |
-| `kudos` | feature/kudos | Core record; writes `service_role` only |
-| `kudos_hashtags` | feature/kudos | Join table; writes `service_role` only |
+| `kudos` | feature/kudos | Core record; INSERT/DELETE added for `authenticated` (feature/create-kudos) |
+| `kudos_hashtags` | feature/kudos | Join table; INSERT/DELETE added for `authenticated` (feature/create-kudos) |
 | `kudos_reactions` | feature/kudos | Reactions; writes `service_role` only |
 | `user_stats` | feature/kudos | Aggregates; SELECT restricted to row owner |
 | `event_bonuses` | feature/kudos | Bonus config; writes `service_role` only |
+| `kudos_attachments` | feature/create-kudos | Image attachment records (FK → kudos); INSERT/DELETE to row owner |
+
+Storage (feature/create-kudos): `kudos-images` bucket with matching RLS INSERT/DELETE policies for `authenticated`.
 
 Triggers (feature/kudos): profile insert→`user_stats` bootstrap; kudos insert→sent/received count update; `kudos_reactions` insert/delete↔sender hearts balance.
 

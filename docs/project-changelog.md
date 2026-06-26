@@ -4,6 +4,31 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/create-kudos] — 2026-06-24
+
+### Create Kudos compose flow with multi-image upload, hashtag picker, anonymous mode, and full TC coverage
+
+**Plan:** [`plans/260624-0907-create-kudos/`](../plans/260624-0907-create-kudos/plan.md)
+
+**What shipped:**
+- Replaces `WriteKudoFormStubView` with a live, fully-wired Create Kudos compose flow
+- Domain: `CreateKudoRequest`, `CreateKudoValidator`, `CreateKudoFieldError`, `KudosImageUploaderProtocol`, `KudosAttachment`, `KudosImageDraft` added to Kudos domain
+- Data: `SupabaseKudosRepository.createKudo`, `SupabaseStorageImageUploader`, `KudosImageResizer`, `CreateKudoMapper`, DTOs (`CreateKudoDTO`, `CreateKudoHashtagDTO`, `CreateKudoAttachmentDTO`); error mapping extended
+- Presentation: `CreateKudoViewModel`, `CreateKudoView`, `CreateKudoComposer`, `CreateKudoViewContainer`; child components for recipient, hashtag, image, message, anonymous toggle, markdown toolbar, action bar
+- New Supabase tables/storage: `kudos_attachments` table; `kudos-images` Storage bucket; INSERT + DELETE RLS policies on `kudos`, `kudos_hashtags`, `kudos_attachments`; C1 fix migration `20260624090704` adds missing sender delete policy
+
+**Database (5 migrations — `20260624090700`–`20260624090704`):**
+- `kudos_attachments` table (FK → `kudos.id`); RLS SELECT to `authenticated`, INSERT/DELETE to row owner
+- `kudos-images` Storage bucket with matching RLS INSERT/DELETE policies
+- INSERT + DELETE RLS policies added to `kudos` and `kudos_hashtags` (previously SELECT-only for `authenticated`)
+- Fix migration: sender-scoped DELETE policy on `kudos` (C1 regression guard)
+
+**Localization:** 42+ `kudos.create.*` keys + 5 `kudos.error.*` keys added (EN + VI)
+
+**Tests:** 368 passing (all suites); UI tests for TC_WRITE_FUN_001 + TC_WRITE_FUN_002 written
+
+---
+
 ## [feature/kudos] — 2026-06-23 — Kudos Highlight Card refinement (B.3)
 
 ### Kudos card UI: star-tier badges, hashtag overflow, self-like guard
