@@ -199,6 +199,17 @@ final class KudosViewModel: ObservableObject {
         emitToast(.linkCopied)
     }
 
+    // MARK: - Optimistic feed update
+
+    /// Prepends a newly created kudos to the feed (top of list) after a successful submit.
+    ///
+    /// Called by `KudosViewContainer` via the `onKudosCreated` callback from
+    /// `CreateKudoViewModel`. A background refresh follows asynchronously to
+    /// reconcile server-side ordering (clarifications.md §post-submit).
+    func prependKudos(_ kudos: Kudos) {
+        feed.insert(kudos, at: 0)
+    }
+
     // MARK: - Private helpers
 
     private func applySnapshot(_ snapshot: KudosScreenSnapshot) {

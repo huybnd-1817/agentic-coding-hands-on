@@ -23,6 +23,10 @@ struct KudosViewContainer: View {
 
     @EnvironmentObject private var languagePreference: LanguagePreference
 
+    // MARK: - Create Kudos presentation state
+
+    @State private var isCreateKudosPresented = false
+
     // MARK: - Body
 
     var body: some View {
@@ -42,7 +46,7 @@ struct KudosViewContainer: View {
             isHashtagSheetPresented: $vm.hashtagSheetPresented,
             isDepartmentSheetPresented: $vm.departmentSheetPresented,
             onLanguageChange: { languagePreference.current = $0 },
-            onSendKudos: {},
+            onSendKudos: { isCreateKudosPresented = true },
             onCardCopyLink: { vm.copyLink($0) },
             onCardLike: { id in Task { await vm.toggleLike(id) } },
             onCardViewDetail: { _ in },
@@ -56,6 +60,15 @@ struct KudosViewContainer: View {
             onSelectDepartment: { id in Task { await vm.setDepartmentFilter(id) } }
         )
         .task { await vm.onAppear() }
+        .fullScreenCover(isPresented: $isCreateKudosPresented) {
+            WriteKudoFormStubView(
+                onKudosCreated: { kudos in
+                    vm.prependKudos(kudos)
+                    isCreateKudosPresented = false
+                },
+                onDismiss: { isCreateKudosPresented = false }
+            )
+        }
     }
 
     // MARK: - Derived bindings
