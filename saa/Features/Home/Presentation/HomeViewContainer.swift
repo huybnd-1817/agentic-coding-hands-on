@@ -123,7 +123,14 @@ struct HomeViewContainer: View {
         case .kudosOverview:    KudosOverviewStubView()
         case .kudosDetail:      KudosDetailStubView()
         case .kudosFeed:        KudosFeedStubView()
-        case .writeKudo:        WriteKudoFormStubView()
+        case .writeKudo:
+            WriteKudoFormStubView(
+                onKudosCreated: { kudos in
+                    kudosViewModel.prependKudos(kudos)
+                    path.removeAll()
+                },
+                onDismiss: { path.removeAll() }
+            )
         case .notifications:    NotificationsPanelStubView()
         case .search:           SearchStubView()
         }

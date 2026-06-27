@@ -87,6 +87,7 @@ extension KudosViewModel {
             anonymousNickname: kudos.anonymousNickname,
             hashtags: kudos.hashtags,
             photoURL: kudos.photoURL,
+            attachments: kudos.attachments,
             heartCount: max(0, kudos.heartCount + heartCountDelta),
             isLikedByMe: isLikedByMe,
             canLike: kudos.canLike,

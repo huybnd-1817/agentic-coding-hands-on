@@ -55,6 +55,10 @@ extension saaApp {
             // Signed-in session — Home mounts. The mock awards repo throws /
             // returns [] depending on the scenario (see `awardsBehavior`).
             store.injectState(state: .preview, isRestoring: false)
+        case "kudos.create":
+            // Signed-in session — Kudos tab + Create Kudo form mount.
+            // WriteKudoFormStubView detects this scenario and injects mock repo/uploader.
+            store.injectState(state: .preview, isRestoring: false)
         default:
             assertionFailure("Unknown uiTestMode scenario: \(scenario)")
         }

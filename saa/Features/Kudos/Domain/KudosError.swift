@@ -31,6 +31,25 @@ enum KudosError: LocalizedError {
     /// values are considered equal regardless of their wrapped message.
     case unknown(underlying: String)
 
+    // MARK: Create-kudo errors (phase-05)
+
+    /// The RLS policy rejected the INSERT — e.g. sender is suspended or
+    /// the feature is disabled for the user's role.
+    case createDenied
+
+    /// The recipient UUID equals the sender UUID (double-checked server-side
+    /// by an RLS check policy, in addition to client-side validation).
+    case recipientSelfBlocked
+
+    /// Uploading one or more image attachments to Supabase Storage failed.
+    case attachmentUploadFailed
+
+    /// A single image attachment exceeds the 5 MB server-side limit.
+    case imageTooLarge
+
+    /// The attachment MIME type is not `image/jpeg` or `image/png`.
+    case unsupportedImageType
+
     // MARK: - LocalizedError
 
     /// Resolves against the system locale (used by OS error chains / logging).
@@ -44,11 +63,16 @@ enum KudosError: LocalizedError {
     /// a toast component so `\.locale` drives the language.
     var messageKey: String? {
         switch self {
-        case .network:              return "kudos.error.network"
-        case .notAuthenticated:     return "kudos.error.notAuthenticated"
-        case .cannotLikeOwnKudos:   return "kudos.error.cannotLikeOwnKudos"
-        case .alreadyLiked:         return "kudos.error.alreadyLiked"
-        case .unknown:              return "kudos.error.unknown"
+        case .network:                  return "kudos.error.network"
+        case .notAuthenticated:         return "kudos.error.notAuthenticated"
+        case .cannotLikeOwnKudos:       return "kudos.error.cannotLikeOwnKudos"
+        case .alreadyLiked:             return "kudos.error.alreadyLiked"
+        case .unknown:                  return "kudos.error.unknown"
+        case .createDenied:             return "kudos.error.createDenied"
+        case .recipientSelfBlocked:     return "kudos.error.recipientSelfBlocked"
+        case .attachmentUploadFailed:   return "kudos.error.attachmentUploadFailed"
+        case .imageTooLarge:            return "kudos.error.imageTooLarge"
+        case .unsupportedImageType:     return "kudos.error.unsupportedImageType"
         }
     }
 }
@@ -56,14 +80,10 @@ enum KudosError: LocalizedError {
 // MARK: - Equatable
 
 extension KudosError: Equatable {
+    /// Two `KudosError` values are equal when they share the same case.
+    /// `unknown.underlying` is intentionally ignored so error-handling code can
+    /// match `.unknown` without caring about the wrapped message.
     static func == (lhs: KudosError, rhs: KudosError) -> Bool {
-        switch (lhs, rhs) {
-        case (.network, .network):                     return true
-        case (.notAuthenticated, .notAuthenticated):   return true
-        case (.cannotLikeOwnKudos, .cannotLikeOwnKudos): return true
-        case (.alreadyLiked, .alreadyLiked):           return true
-        case (.unknown, .unknown):                     return true  // ignore underlying
-        default:                                       return false
-        }
+        lhs.messageKey == rhs.messageKey
     }
 }

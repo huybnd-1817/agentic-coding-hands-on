@@ -16,6 +16,42 @@ import Foundation
 /// never in the repository itself.
 enum KudosMapper {
 
+    // MARK: - Attachment mapping
+
+    /// Maps `kudos_attachments` join rows to domain values.
+    ///
+    /// Back-compat strategy (clarifications.md §storage-model):
+    /// When the join is nil (legacy query without the embed) or the array is empty
+    /// AND the DTO has a `photo_url`, a single synthetic attachment is produced from
+    /// the legacy field so the UI rendering path is unified across old and new records.
+    static func attachments(from dto: KudosDTO) -> [KudosAttachment] {
+        let rows = dto.kudos_attachments ?? []
+        if !rows.isEmpty {
+            return rows
+                .sorted { $0.sort_order < $1.sort_order }
+                .map { row in
+                    KudosAttachment(
+                        storagePath: row.storage_path,
+                        contentType: row.content_type,
+                        byteSize: row.byte_size,
+                        sortOrder: row.sort_order
+                    )
+                }
+        }
+        // Fallback: synthesise from legacy photo_url.
+        if let photoURL = dto.photo_url, !photoURL.isEmpty {
+            return [
+                KudosAttachment(
+                    storagePath: photoURL,
+                    contentType: "image/jpeg",
+                    byteSize: 0,
+                    sortOrder: 0
+                )
+            ]
+        }
+        return []
+    }
+
     // MARK: - Author helpers
 
     /// Maps a `KudosProfileDTO` to a `KudosAuthor`, preserving all identity fields.
@@ -92,6 +128,11 @@ enum KudosMapper {
 
         let hashtags = (dto.kudos_hashtags ?? []).map { HashtagMapper.from($0.hashtag) }
 
+        // Map kudos_attachments when present (phase-06+).
+        // Back-compat: when the join is nil or empty, synthesise a single attachment
+        // from the legacy `photo_url` field so the UI rendering path is unified.
+        let attachments: [KudosAttachment] = Self.attachments(from: dto)
+
         // canLike: false when the current user is the sender (TC_FUN_008).
         // RLS also enforces this server-side; this flag prevents the UI from
         // even attempting the request.
@@ -107,6 +148,7 @@ enum KudosMapper {
             anonymousNickname: dto.anonymous_nickname,
             hashtags: hashtags,
             photoURL: dto.photo_url.flatMap(URL.init(string:)),
+            attachments: attachments,
             heartCount: dto.heartCount,
             isLikedByMe: isLikedByMe,
             canLike: canLike,

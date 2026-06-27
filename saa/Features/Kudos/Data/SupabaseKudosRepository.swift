@@ -135,6 +135,42 @@ extension SupabaseKudosRepository {
         return []
     }
 
+    func fetchEligibleRecipients() async throws -> [ProfileSummary] {
+        guard let selfId = await currentUserId() else {
+            throw KudosError.notAuthenticated
+        }
+        do {
+            // Lightweight profile fetch: only columns that exist on `public.profiles`
+            // (id, name, avatar_url, department_id). The schema has no
+            // `employee_code` column — selecting it returns PGRST204 and
+            // empties the dropdown.
+            struct ProfileRow: Decodable, Sendable {
+                let id: UUID
+                let name: String?
+                let avatar_url: String?
+                let department_id: UUID?
+            }
+            let rows: [ProfileRow] = try await client
+                .from("profiles")
+                .select("id, name, avatar_url, department_id")
+                .neq("id", value: selfId.uuidString)
+                .order("name", ascending: true)
+                .execute()
+                .value
+            return rows.map { row in
+                ProfileSummary(
+                    id: row.id,
+                    displayName: row.name ?? "",
+                    employeeCode: nil,
+                    avatarURL: row.avatar_url.flatMap { URL(string: $0) },
+                    department: nil
+                )
+            }
+        } catch {
+            throw KudosErrorMapper.from(error)
+        }
+    }
+
     func fetchActiveEventBonus(now: Date) async throws -> EventBonus? {
         do {
             // DB-level window filter: WHERE now BETWEEN starts_at AND ends_at
@@ -196,6 +232,110 @@ extension SupabaseKudosRepository {
             throw KudosErrorMapper.from(error)
         }
     }
+
+    func createKudo(_ request: CreateKudoRequest) async throws -> Kudos {
+        // Step 1: Insert the kudos row and receive the generated id.
+        let insertedKudosId: UUID
+        do {
+            let kudosBody = CreateKudoMapper.kudosDTO(from: request)
+            let response: [KudosInsertResponseDTO] = try await client
+                .from("kudos")
+                .insert(kudosBody)
+                .select("id")
+                .execute()
+                .value
+            guard let first = response.first else {
+                throw KudosError.createDenied
+            }
+            insertedKudosId = first.id
+        } catch {
+            throw KudosErrorMapper.from(error)
+        }
+
+        // Steps 2 & 3 can fail after the kudos row is committed.
+        // On any failure: attempt best-effort rollback then re-throw.
+        do {
+            // Step 2: Batch insert kudos_hashtags.
+            let hashtagDTOs = CreateKudoMapper.hashtagDTOs(kudosId: insertedKudosId, from: request)
+            if !hashtagDTOs.isEmpty {
+                try await client
+                    .from("kudos_hashtags")
+                    .insert(hashtagDTOs)
+                    .execute()
+            }
+
+            // Step 3: Batch insert kudos_attachments (skip when no attachments).
+            // Re-assign sort_order by array position (uploader sets 0 as placeholder).
+            if !request.attachments.isEmpty {
+                let attachmentDTOs = request.attachments.enumerated().map { idx, att in
+                    CreateKudoAttachmentDTO(
+                        kudos_id: insertedKudosId.uuidString,
+                        storage_path: att.storagePath,
+                        sort_order: idx,
+                        content_type: att.contentType,
+                        byte_size: att.byteSize
+                    )
+                }
+                try await client
+                    .from("kudos_attachments")
+                    .insert(attachmentDTOs)
+                    .execute()
+            }
+        } catch {
+            // Best-effort rollback: remove uploaded storage objects first, then delete the
+            // orphaned kudos row. Order matters: the kudos DELETE (with cascade) would remove
+            // kudos_attachments DB rows, but the Storage objects must be removed explicitly.
+            let originalError = error
+
+            // 1. Remove Storage objects for any attachments that were already uploaded.
+            let storagePaths = request.attachments.map(\.storagePath)
+            if !storagePaths.isEmpty {
+                do {
+                    try await client.storage
+                        .from("kudos-images")
+                        .remove(paths: storagePaths)
+                } catch {
+                    #if DEBUG
+                    print("[Kudos] createKudo storage cleanup failed for \(storagePaths): \(error)")
+                    #endif
+                    // Best-effort: continue to DB rollback even if Storage delete fails.
+                }
+            }
+
+            // 2. Delete the orphaned kudos row (cascade removes kudos_hashtags / kudos_attachments).
+            do {
+                try await client
+                    .from("kudos")
+                    .delete()
+                    .eq("id", value: insertedKudosId.uuidString)
+                    .execute()
+            } catch {
+                #if DEBUG
+                print("[Kudos] createKudo rollback failed for id \(insertedKudosId): \(error)")
+                #endif
+            }
+            throw KudosErrorMapper.from(originalError)
+        }
+
+        // Step 4: Fetch the full kudos entity with all joins and return it.
+        do {
+            let userId = await currentUserId()
+            let dtos: [KudosDTO] = try await client
+                .from("kudos")
+                .select(kudosSelectClause(for: KudosFilter()))
+                .eq("id", value: insertedKudosId.uuidString)
+                .limit(1)
+                .execute()
+                .value
+            guard let dto = dtos.first else {
+                throw KudosError.unknown(underlying: "Created kudos not found after insert")
+            }
+            // Resolve liked state (always false for a brand-new kudos).
+            return KudosMapper.from(dto, currentUserId: userId, isLikedByMe: false)
+        } catch {
+            throw KudosErrorMapper.from(error)
+        }
+    }
 }
 
 // MARK: - Private helpers
@@ -223,6 +363,7 @@ private extension SupabaseKudosRepository {
         sender:profiles!sender_id(id, name, avatar_url, email, department_id, user_stats(kudos_received_count)),
         recipient:profiles!recipient_id\(recipientJoinHint)(id, name, avatar_url, email, department_id, user_stats(kudos_received_count)),
         kudos_hashtags\(hashtagJoinHint)(hashtag:hashtags(id, tag)),
+        kudos_attachments(id, storage_path, sort_order, content_type, byte_size),
         reactions:kudos_reactions(count)
         """
     }

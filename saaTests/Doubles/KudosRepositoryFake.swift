@@ -42,6 +42,11 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
         case error(KudosError)
     }
 
+    enum EligibleRecipientsBehavior {
+        case success([ProfileSummary])
+        case error(KudosError)
+    }
+
     enum BonusBehavior {
         case success(EventBonus?)
         case error(KudosError)
@@ -57,6 +62,11 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
         case error(KudosError)
     }
 
+    enum CreateKudoBehavior {
+        case success(Kudos)
+        case error(KudosError)
+    }
+
     // MARK: - Per-method behaviors
 
     var highlightBehavior: HighlightBehavior = .success([])
@@ -65,9 +75,11 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
     var departmentsBehavior: DepartmentsBehavior = .success([])
     var statsBehavior: StatsBehavior = .success(.zero)
     var recipientsBehavior: RecipientsBehavior = .success([])
+    var eligibleRecipientsBehavior: EligibleRecipientsBehavior = .success([])
     var bonusBehavior: BonusBehavior = .success(nil)
     var likeBehavior: LikeBehavior = .success(true)
     var unlikeBehavior: UnlikeBehavior = .success(false)
+    var createKudoBehavior: CreateKudoBehavior = .error(.createDenied)  // safe default — must be set explicitly
 
     // MARK: - Call counters
 
@@ -77,9 +89,11 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
     private(set) var fetchDepartmentsCalls = 0
     private(set) var fetchStatsCalls = 0
     private(set) var fetchRecipientsCalls = 0
+    private(set) var fetchEligibleRecipientsCalls = 0
     private(set) var fetchBonusCalls = 0
     private(set) var likeCalls = 0
     private(set) var unlikeCalls = 0
+    private(set) var createKudoCalls = 0
     private(set) var currentUserIdCalls = 0
 
     // MARK: - Last-arg recording
@@ -93,6 +107,7 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
     var lastUnlikeKudosId: KudosID?
     var lastBonusNow: Date?
     var lastRecipientLimit: Int?
+    var lastCreateKudoRequest: CreateKudoRequest?
 
     // MARK: - Current user simulation
 
@@ -153,6 +168,14 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
         }
     }
 
+    func fetchEligibleRecipients() async throws -> [ProfileSummary] {
+        fetchEligibleRecipientsCalls += 1
+        switch eligibleRecipientsBehavior {
+        case .success(let profiles): return profiles
+        case .error(let error): throw error
+        }
+    }
+
     func fetchActiveEventBonus(now: Date) async throws -> EventBonus? {
         fetchBonusCalls += 1
         lastBonusNow = now
@@ -184,5 +207,14 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
     func currentUserId() async -> UUID? {
         currentUserIdCalls += 1
         return _currentUserId
+    }
+
+    func createKudo(_ request: CreateKudoRequest) async throws -> Kudos {
+        createKudoCalls += 1
+        lastCreateKudoRequest = request
+        switch createKudoBehavior {
+        case .success(let kudos): return kudos
+        case .error(let error): throw error
+        }
     }
 }

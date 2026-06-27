@@ -67,6 +67,7 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             anonymousNickname: nil,
             hashtags: Array(hashtags.prefix(3)),
             photoURL: nil,
+            attachments: [],
             heartCount: 1000,
             isLikedByMe: false,
             canLike: true,
@@ -83,6 +84,7 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             anonymousNickname: nil,
             hashtags: Array(hashtags.suffix(2)),
             photoURL: nil,
+            attachments: [],
             heartCount: 750,
             isLikedByMe: true,
             canLike: false,
@@ -106,6 +108,7 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             anonymousNickname: "Bí Ẩn",
             hashtags: [hashtags[1]],
             photoURL: nil,
+            attachments: [],
             heartCount: 320,
             isLikedByMe: false,
             canLike: true,
@@ -151,6 +154,25 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
         return []
     }
 
+    func fetchEligibleRecipients() async throws -> [ProfileSummary] {
+        [
+            ProfileSummary(
+                id: UUID(uuidString: "bbbbbbbb-0000-0000-0000-000000000002")!,
+                displayName: "Dương Xuân Huỳnh",
+                employeeCode: "HANV05",
+                avatarURL: nil,
+                department: "HAN"
+            ),
+            ProfileSummary(
+                id: UUID(uuidString: "aaaaaaaa-0000-0000-0000-000000000003")!,
+                displayName: "Nguyễn Văn Quy",
+                employeeCode: "HANV06",
+                avatarURL: nil,
+                department: "HAN"
+            )
+        ]
+    }
+
     func fetchActiveEventBonus(now: Date) async throws -> EventBonus? {
         // Return a mock active bonus for preview purposes.
         EventBonus(
@@ -168,6 +190,27 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
 
     func currentUserId() async -> UUID? {
         UUID(uuidString: "aaaaaaaa-0000-0000-0000-000000000001")!
+    }
+
+    func createKudo(_ request: CreateKudoRequest) async throws -> Kudos {
+        // Stub: return a synthetic kudos for preview purposes.
+        Kudos(
+            id: UUID(),
+            sender: Self.senderA,
+            recipient: Self.recipientA,
+            title: request.title,
+            message: request.message,
+            isAnonymous: request.isAnonymous,
+            anonymousNickname: request.anonymousNickname,
+            hashtags: [],
+            photoURL: nil,
+            attachments: request.attachments,
+            heartCount: 0,
+            isLikedByMe: false,
+            canLike: false,
+            shareURL: nil,
+            createdAt: Date()
+        )
     }
 }
 #endif

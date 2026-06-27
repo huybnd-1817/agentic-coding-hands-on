@@ -51,6 +51,30 @@ struct KudosProfileDTO: Codable, Sendable {
     }
 }
 
+// MARK: - KudosAttachmentDTO
+
+/// Join shape for `kudos_attachments(*)` nested select.
+///
+/// Rows are returned in `sort_order` ascending when the query includes
+/// `.order("sort_order", on: "kudos_attachments")`, which is the default
+/// for `kudosSelectClause` in `SupabaseKudosRepository`.
+struct KudosAttachmentDTO: Codable, Sendable {
+
+    let id: UUID
+    let storage_path: String
+    let sort_order: Int
+    let content_type: String
+    let byte_size: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case storage_path
+        case sort_order
+        case content_type
+        case byte_size
+    }
+}
+
 // MARK: - KudosHashtagJoinDTO
 
 /// Join shape for `kudos_hashtags(hashtag:hashtags(*))` nested select.
@@ -111,6 +135,10 @@ struct KudosDTO: Codable, Sendable {
     let sender: KudosProfileDTO?
     let recipient: KudosProfileDTO?
     let kudos_hashtags: [KudosHashtagJoinDTO]?
+    /// Ordered image attachments from the `kudos_attachments` join.
+    /// Nil when the join is absent from the query (legacy reads); empty when no
+    /// attachments exist. `KudosMapper` falls back to `photo_url` when nil or empty.
+    let kudos_attachments: [KudosAttachmentDTO]?
 
     // heart_count: nested aggregate `kudos_reactions(count)`.
     // Supabase returns this as an array with one element; we take `.first?.count`.
@@ -132,6 +160,7 @@ struct KudosDTO: Codable, Sendable {
         case sender
         case recipient
         case kudos_hashtags
+        case kudos_attachments
         case reactions
     }
 

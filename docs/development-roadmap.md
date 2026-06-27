@@ -10,6 +10,7 @@
 | 2 | Clean Architecture refactor (Feature-sliced, 3-layer) | Complete | 2026-06-14 |
 | 3 | SAA 2025 Home screen (Awards, Kudos, Access Denied) | Complete | 2026-06-16 |
 | 4 | Sun*Kudos feature (full implementation, replaces stub screens) | Complete | 2026-06-19 |
+| 5 | Create Kudos compose flow (multi-image upload, hashtag picker, anonymous mode) | Complete | 2026-06-24 |
 
 ---
 
@@ -50,6 +51,23 @@
 - `MainTabView` mounts real `KudosViewContainer`; cross-tab nav from `HomeView.onKudosDetail` → `HomeViewContainer.activeTab = .kudos`
 - Localizable.xcstrings: 34 keys added (`kudos.*`) in EN + VI
 - Tests: 227 passing (all suites); new Kudos test files under `saaTests/Features/Kudos/Domain|Data|Presentation/` + 2 new doubles
+
+---
+
+### Phase 5 — Create Kudos Compose Flow
+
+**Branch:** `feature/create-kudos`
+**Shipped:** 2026-06-24
+**Plan:** [`plans/260624-0907-create-kudos/`](../plans/260624-0907-create-kudos/plan.md)
+
+#### Scope
+- Replaces `WriteKudoFormStubView` with a live Create Kudos compose flow
+- Domain additions: `CreateKudoRequest`, `CreateKudoValidator`, `CreateKudoFieldError`, `KudosImageUploaderProtocol`, `KudosAttachment`, `KudosImageDraft`
+- Data additions: `SupabaseKudosRepository.createKudo`, `SupabaseStorageImageUploader`, `KudosImageResizer`, `CreateKudoMapper`, new DTOs; error mapping extended
+- Presentation: `CreateKudoViewModel`, `CreateKudoView`, `CreateKudoComposer`, `CreateKudoViewContainer`; recipient + hashtag dropdowns, image picker, markdown toolbar, anonymous toggle, action bar
+- 5 new Supabase migrations: `kudos_attachments` table, `kudos-images` Storage bucket, INSERT/DELETE RLS on `kudos` + `kudos_hashtags` + `kudos_attachments`, C1 fix migration for sender-scoped DELETE
+- Localizable.xcstrings: 42+ `kudos.create.*` + 5 `kudos.error.*` keys (EN + VI)
+- Tests: 368 passing; UI tests for TC_WRITE_FUN_001 + TC_WRITE_FUN_002
 
 ---
 

@@ -18,6 +18,10 @@ final class HomeIntegrationUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // Force portrait — the app's Info.plist allows landscape and CI's
+        // iPhone 16 Pro can boot rotated, which breaks scroll-direction and
+        // hit-test assumptions these tests make.
+        XCUIDevice.shared.orientation = .portrait
     }
 
     // MARK: - Helpers
@@ -92,16 +96,17 @@ final class HomeIntegrationUITests: XCTestCase {
         XCTAssertTrue(pencil.waitForExistence(timeout: 5), "Pencil FAB must exist")
         pencil.tap()
 
-        let writeStub = element("stub.writeKudo", in: app)
+        let writeStub = element("createKudo.root", in: app)
         XCTAssertTrue(
             writeStub.waitForExistence(timeout: 3),
-            "WriteKudo stub must appear after the first tap"
+            "CreateKudo form must appear after the first tap"
         )
 
-        // Pop back via the navigation bar back button (system-generated since
-        // the stub has no leading button of its own).
-        let backButton = app.navigationBars.buttons.firstMatch
-        XCTAssertTrue(backButton.waitForExistence(timeout: 3), "Back button must exist")
+        // Dismiss via the custom back chevron. The form hides the system nav
+        // bar via .toolbar(.hidden, for: .navigationBar), so the only back
+        // affordance is the chevron in the header.
+        let backButton = element("createKudo.nav.back", in: app)
+        XCTAssertTrue(backButton.waitForExistence(timeout: 3), "Custom back chevron must exist")
         backButton.tap()
 
         XCTAssertTrue(

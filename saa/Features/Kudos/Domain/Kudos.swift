@@ -67,7 +67,11 @@ struct Kudos: Identifiable, Hashable, Sendable {
     /// Hashtag labels associated with this post, ordered as stored.
     let hashtags: [Hashtag]
     /// Single attached photo; nil when no photo was uploaded.
+    /// Retained for back-compat with existing feed read paths (clarifications.md §storage-model).
     let photoURL: URL?
+    /// Ordered list of image attachments stored in `kudos_attachments` table.
+    /// Empty when no images were attached (pre-phase-05 records always produce `[]`).
+    let attachments: [KudosAttachment]
     /// Aggregate heart-reaction count across all users.
     let heartCount: Int
     /// Whether the currently authenticated user has liked this kudos.
