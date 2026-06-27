@@ -18,6 +18,10 @@ final class HomeIntegrationUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // Force portrait — the app's Info.plist allows landscape and CI's
+        // iPhone 16 Pro can boot rotated, which breaks scroll-direction and
+        // hit-test assumptions these tests make.
+        XCUIDevice.shared.orientation = .portrait
     }
 
     // MARK: - Helpers

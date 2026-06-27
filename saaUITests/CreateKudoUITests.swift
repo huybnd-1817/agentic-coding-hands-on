@@ -26,6 +26,11 @@ final class CreateKudoUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // Force portrait — the app's Info.plist allows landscape and CI's
+        // iPhone 16 Pro can boot rotated, which breaks the layout assumptions
+        // these tests make (scroll direction, keyboard placement, button hit
+        // areas, fullScreenCover presentation).
+        XCUIDevice.shared.orientation = .portrait
     }
 
     // MARK: - Helpers

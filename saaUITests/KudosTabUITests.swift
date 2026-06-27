@@ -23,6 +23,11 @@ final class KudosTabUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // The app's Info.plist allows landscape, and CI's iPhone 16 Pro
+        // sometimes boots in landscape — where swipeUp doesn't scroll the
+        // Kudos tab's ScrollView and the secret-box button never becomes
+        // hittable. Force portrait so the test exercises the intended layout.
+        XCUIDevice.shared.orientation = .portrait
     }
 
     // MARK: - Helpers

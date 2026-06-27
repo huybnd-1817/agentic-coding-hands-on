@@ -22,6 +22,9 @@ final class LoginFlowUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // Force portrait — the app's Info.plist allows landscape and CI's
+        // iPhone 16 Pro can boot rotated, which breaks UI layout assumptions.
+        XCUIDevice.shared.orientation = .portrait
     }
 
     // MARK: - Helpers
