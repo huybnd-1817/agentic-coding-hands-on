@@ -163,17 +163,26 @@ final class KudosTabUITests: XCTestCase {
     func testSecretBoxButtonIsHittable() throws {
         let app = try launchAndOpenKudosTab()
 
-        // Scroll the all-kudos section into view so the secret-box button is
-        // hittable. The Kudos tab is a tall ScrollView and the button sits
-        // below the highlight carousel.
+        // The Kudos tab is a tall ScrollView; the secret-box button sits below
+        // the highlight carousel. Wait for the element to enter the
+        // accessibility tree FIRST so swipeUps don't burn while the tab is
+        // still loading, then scroll until it becomes hittable. The previous
+        // ordering (scroll-then-wait) burned all 6 attempts before the button
+        // mounted on slower CI runners (iPhone 16 Pro).
         let secret = element("kudos.secretBoxButton", in: app)
+        XCTAssertTrue(
+            secret.waitForExistence(timeout: 5),
+            "Secret box button must mount on Kudos tab"
+        )
         var attempts = 0
-        while !secret.isHittable, attempts < 6 {
+        while !secret.isHittable, attempts < 10 {
             app.swipeUp()
             attempts += 1
         }
-        XCTAssertTrue(secret.waitForExistence(timeout: 3), "Secret box button must mount on Kudos tab")
-        XCTAssertTrue(secret.isHittable, "Secret box button must be reachable by scrolling")
+        XCTAssertTrue(
+            secret.isHittable,
+            "Secret box button must be reachable by scrolling (gave up after \(attempts) attempts)"
+        )
 
         secret.tap()
         // App must remain on the Kudos tab — no crash, no navigation.
