@@ -47,6 +47,9 @@ struct AllKudosView: View {
     let onRecipientTap: (KudosCardID) -> Void
     /// Fires when the last card enters the viewport — triggers next page load.
     let onReachBottom: () -> Void
+    /// Fires on pull-to-refresh. `async` so SwiftUI's `.refreshable` can await
+    /// the work and keep the spinner visible until the refetch completes.
+    let onRefresh: () async -> Void
 
     // MARK: - Body
 
@@ -55,7 +58,7 @@ struct AllKudosView: View {
             screenBackground
 
             VStack(spacing: 0) {
-                customHeader
+                navigationBar
                 heroBlock
                 AllKudosFeedList(
                     kudos: kudos,
@@ -68,10 +71,12 @@ struct AllKudosView: View {
                     onHashtagTap: onHashtagTap,
                     onSenderTap: onSenderTap,
                     onRecipientTap: onRecipientTap,
-                    onReachBottom: onReachBottom
+                    onReachBottom: onReachBottom,
+                    onRefresh: onRefresh
                 )
             }
         }
+        .ignoresSafeArea(edges: .top)
         .accessibilityIdentifier("allKudos.root")
     }
 
@@ -96,36 +101,52 @@ struct AllKudosView: View {
         .ignoresSafeArea()
     }
 
-    // MARK: - Custom header (Figma 6891:16000 — Phase 04 hides system NavigationBar)
+    // MARK: - Navigation bar (Figma 6891:16000 — same pattern as CreateKudoView)
+    //
+    // Transparent header sitting on top of the key-visual. 89pt total height
+    // (47pt status-bar spacer + 42pt content row) mirrors the iOS standard
+    // large-screen navigation bar geometry used by `CreateKudoView`. Title
+    // uses Helvetica Neue 17pt weight 500 with 0.5pt tracking — confirmed
+    // against Figma node 6891:16006.
 
-    private var customHeader: some View {
-        HStack(spacing: 0) {
-            // Back button — 44×44 tap area wrapping the 24pt icon.
-            Button(action: onBack) {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityIdentifier("allKudos.backButton")
-            .padding(.leading, 4)
-
-            Spacer()
-
-            Text(LocalizedStringKey("kudos.allKudos.title"))
-                .font(.custom("Montserrat-SemiBold", size: 17))
-                .foregroundColor(.white)
-
-            Spacer()
-
-            // Invisible right-side balance placeholder (mirrors left button width).
+    private var navigationBar: some View {
+        ZStack {
             Color.clear
-                .frame(width: 44 + 4, height: 44)
+                .ignoresSafeArea(edges: .top)
+
+            VStack(spacing: 0) {
+                Color.clear.frame(height: 47)
+
+                HStack(spacing: 0) {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 24, height: 24)
+                            .frame(width: 42, height: 42)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 7)
+                    .accessibilityIdentifier("allKudos.backButton")
+
+                    Spacer()
+
+                    Text(LocalizedStringKey("kudos.allKudos.title"))
+                        .font(.custom("Helvetica Neue", size: 17).weight(.medium))
+                        .foregroundColor(.white)
+                        .tracking(0.5)
+
+                    Spacer()
+
+                    // Mirror spacer for title centering.
+                    Color.clear.frame(width: 42, height: 42)
+                        .padding(.trailing, 7)
+                }
+                .frame(height: 42)
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.allKudosScreenBg)
+        .frame(height: 89)
     }
 
     // MARK: - Hero block (Figma 6891:16644 — eyebrow + separator + "ALL KUDOS" title)
@@ -140,8 +161,10 @@ struct AllKudosView: View {
                 .fill(Color(red: 46.0 / 255, green: 57.0 / 255, blue: 64.0 / 255))
                 .frame(height: 1)
 
+            // Figma node I6891:16644;75:1887: Montserrat Medium 22pt / line-height 28pt.
+            // Earlier Phase 01 deviation used Bold 32pt — reverted to spec per user feedback.
             Text("ALL KUDOS")
-                .font(.custom("Montserrat-Bold", size: 32))
+                .font(.custom("Montserrat-Medium", size: 22))
                 .foregroundColor(.allKudosGold)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -166,7 +189,8 @@ struct AllKudosView: View {
         onHashtagTap: { _ in },
         onSenderTap: { _ in },
         onRecipientTap: { _ in },
-        onReachBottom: {}
+        onReachBottom: {},
+        onRefresh: {}
     )
     .preferredColorScheme(.dark)
 }
@@ -184,7 +208,8 @@ struct AllKudosView: View {
         onHashtagTap: { _ in },
         onSenderTap: { _ in },
         onRecipientTap: { _ in },
-        onReachBottom: {}
+        onReachBottom: {},
+        onRefresh: {}
     )
     .preferredColorScheme(.dark)
 }

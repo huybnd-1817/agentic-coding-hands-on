@@ -31,6 +31,9 @@ struct AllKudosFeedList: View {
     let onSenderTap: (KudosCardID) -> Void
     let onRecipientTap: (KudosCardID) -> Void
     let onReachBottom: () -> Void
+    /// Awaited by SwiftUI's `.refreshable` — the pull-to-refresh spinner stays
+    /// visible until this returns.
+    let onRefresh: () async -> Void
 
     // MARK: - Internal state
 
@@ -43,23 +46,26 @@ struct AllKudosFeedList: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(spacing: 16) {
-                if kudos.isEmpty {
-                    if isInitialLoading {
-                        initialLoadingIndicator
-                    } else {
-                        emptyState
-                    }
-                } else {
+                if !kudos.isEmpty {
                     feedCards
+                } else if isInitialLoading {
+                    initialLoadingIndicator
+                } else {
+                    emptyState
                 }
 
                 if !kudos.isEmpty && hasMore && isLoadingMore {
                     loadingIndicator
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
+            // Horizontal 50pt — matches Figma node "Danh sách Kudo" (6891:16170)
+            // which lays out at startX=51 / endX=324 on the 375pt artboard.
+            .padding(.horizontal, 50)
+            // Bottom 80pt = ~56pt visible HomeBottomNavBar content + 24pt
+            // breathing room between the last card and the tab-bar's top edge.
+            .padding(.bottom, 80)
         }
+        .refreshable { await onRefresh() }
     }
 
     // MARK: - Initial loading indicator
@@ -150,7 +156,8 @@ private extension Color {
             onHashtagTap: { _ in },
             onSenderTap: { _ in },
             onRecipientTap: { _ in },
-            onReachBottom: {}
+            onReachBottom: {},
+            onRefresh: {}
         )
     }
     .preferredColorScheme(.dark)
@@ -170,7 +177,8 @@ private extension Color {
             onHashtagTap: { _ in },
             onSenderTap: { _ in },
             onRecipientTap: { _ in },
-            onReachBottom: {}
+            onReachBottom: {},
+            onRefresh: {}
         )
     }
     .preferredColorScheme(.dark)

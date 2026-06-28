@@ -81,6 +81,38 @@ extension KudosViewModel {
         }
     }
 
+    /// Refetches the first page WITHOUT clearing the current `allFeed` first.
+    ///
+    /// Designed for pull-to-refresh: the existing list stays visible while the
+    /// refresh is in flight (SwiftUI shows its own pull-to-refresh spinner),
+    /// then `allFeed` is replaced atomically once the new page arrives. This
+    /// avoids the empty-list flash that `loadAllFeedInitial()` would produce.
+    ///
+    /// - Re-entrancy guard: no-ops if another fetch is already in flight.
+    /// - On success: `allFeedPage` reset to 0; `allFeed` replaced; state transitions
+    ///   to `.loaded` or `.endOfList` as appropriate.
+    /// - On failure: keeps the existing `allFeed` visible, sets `.error(error)`.
+    func refreshAllFeed() async {
+        guard !isAllFeedFetchInFlight else { return }
+        isAllFeedFetchInFlight = true
+        defer { isAllFeedFetchInFlight = false }
+
+        do {
+            let results = try await repository.fetchKudosFeed(
+                filter: KudosFilter(),
+                page: 0,
+                pageSize: allFeedPageSize
+            )
+            allFeed = results
+            allFeedPage = 0
+            allFeedLoadState = results.count < allFeedPageSize ? .endOfList : .loaded
+        } catch let error as KudosError {
+            allFeedLoadState = .error(error)
+        } catch {
+            allFeedLoadState = .error(.unknown(underlying: error.localizedDescription))
+        }
+    }
+
     /// Synchronously resets all-feed state to idle (called on `.onDisappear` by the container).
     ///
     /// Does NOT cancel any in-flight fetch — the in-flight task will complete and

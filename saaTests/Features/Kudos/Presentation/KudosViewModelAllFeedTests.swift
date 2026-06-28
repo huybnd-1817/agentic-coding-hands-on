@@ -265,4 +265,66 @@ final class KudosViewModelAllFeedTests: XCTestCase {
         XCTAssertEqual(filter?.hashtagId, nil, "All Kudos should have no hashtag filter")
         XCTAssertEqual(filter?.departmentId, nil, "All Kudos should have no department filter")
     }
+
+    // MARK: - Pull-to-refresh
+
+    func test_refreshAllFeed_replacesAllFeed_withoutClearingFirst() async {
+        let repo = KudosRepositoryFake()
+        let firstPage = (0..<20).map { _ in makeKudos() }
+        repo.feedPagesByPageIndex[0] = firstPage
+
+        let vm = makeVM(repo: repo)
+        await vm.loadAllFeedInitial()
+        XCTAssertEqual(vm.allFeed.count, 20)
+
+        // Swap to a brand-new page-0 payload — refresh should replace atomically.
+        let refreshedPage = (0..<15).map { _ in makeKudos() }
+        repo.feedPagesByPageIndex[0] = refreshedPage
+
+        await vm.refreshAllFeed()
+
+        XCTAssertEqual(vm.allFeed.count, 15, "Refresh should replace allFeed with the new page")
+        XCTAssertEqual(vm.allFeed.map(\.id), refreshedPage.map(\.id), "Refresh should not preserve stale items")
+        XCTAssertEqual(vm.allFeedPage, 0, "Refresh resets pagination cursor to page 0")
+        XCTAssertEqual(vm.allFeedLoadState, .endOfList, "<pageSize triggers endOfList")
+    }
+
+    func test_refreshAllFeed_repositoryThrows_keepsExistingFeedVisible() async {
+        let repo = KudosRepositoryFake()
+        let firstPage = (0..<20).map { _ in makeKudos() }
+        repo.feedPagesByPageIndex[0] = firstPage
+
+        let vm = makeVM(repo: repo)
+        await vm.loadAllFeedInitial()
+        XCTAssertEqual(vm.allFeed.count, 20)
+
+        // Arrange the refresh to fail.
+        repo.feedFetchError = KudosError.network
+
+        await vm.refreshAllFeed()
+
+        XCTAssertEqual(vm.allFeed.count, 20, "Refresh failure must keep the prior feed visible")
+        XCTAssertEqual(vm.allFeed.map(\.id), firstPage.map(\.id), "Items unchanged on failure")
+        XCTAssertEqual(vm.allFeedLoadState, .error(.network), "Refresh failure must transition to .error")
+    }
+
+    func test_refreshAllFeed_whileInitialLoadInFlight_isNoOp() async {
+        let repo = KudosRepositoryFake()
+        repo.feedPagesByPageIndex[0] = (0..<20).map { _ in makeKudos() }
+
+        let vm = makeVM(repo: repo)
+
+        // Run initial load to completion first, then verify a follow-up refresh
+        // is guarded against re-entrance when the flag is already set.
+        await vm.loadAllFeedInitial()
+        let baselineCalls = repo.fetchFeedCalls
+
+        // Simulate the guard tripping by manually flipping the in-flight flag
+        // (equivalent to what an unfinished concurrent fetch would do).
+        vm.isAllFeedFetchInFlight = true
+        await vm.refreshAllFeed()
+        vm.isAllFeedFetchInFlight = false
+
+        XCTAssertEqual(repo.fetchFeedCalls, baselineCalls, "refreshAllFeed must no-op when a fetch is already in flight")
+    }
 }

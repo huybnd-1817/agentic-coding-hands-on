@@ -48,7 +48,8 @@ struct AllKudosViewContainer: View {
             onHashtagTap:     { _ in },
             onSenderTap:      { _ in },
             onRecipientTap:   { _ in },
-            onReachBottom:    { Task { await vm.loadAllFeedMore() } }
+            onReachBottom:    { Task { await vm.loadAllFeedMore() } },
+            onRefresh:        { await vm.refreshAllFeed() }
         )
         .task { await vm.loadAllFeedInitial() }
         .onDisappear { vm.resetAllFeed() }
