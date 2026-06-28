@@ -11,6 +11,7 @@
 | 3 | SAA 2025 Home screen (Awards, Kudos, Access Denied) | Complete | 2026-06-16 |
 | 4 | Sun*Kudos feature (full implementation, replaces stub screens) | Complete | 2026-06-19 |
 | 5 | Create Kudos compose flow (multi-image upload, hashtag picker, anonymous mode) | Complete | 2026-06-24 |
+| 6 | All Kudos full-page screen (paginated feed, like propagation, DRY card adapter) | Complete | 2026-06-28 |
 
 ---
 
@@ -71,8 +72,28 @@
 
 ---
 
+---
+
+### Phase 6 — All Kudos Screen
+
+**Branch:** `feature/all-kudos`
+**Shipped:** 2026-06-28
+**Plan:** [`plans/260627-1813-all-kudos-screen/`](../plans/260627-1813-all-kudos-screen/plan.md)
+
+#### Scope
+- New `AllKudos/` directory under `Kudos/Presentation/`: `AllKudosViewContainer`, `AllKudosView`, `AllKudosFeedList`, `KudosCardAdapter`
+- `KudosViewContainer` wraps content in `NavigationStack`; `onViewAllKudos` pushes `Route.all`
+- `KudosViewModel+AllFeed.swift` extension: `allFeed`, `allFeedLoadState`, `loadAllFeedInitial`, `loadAllFeedMore`, `resetAllFeed`; calls `repository.fetchKudosFeed` directly (bypasses `LoadKudosScreenUseCase`)
+- `repository` dependency added to `KudosViewModel` constructor (was already owned by the Data layer; now exposed to Presentation via widened `internal` access)
+- Like-toggle propagation extended to `allFeed` (in `KudosViewModel+Likes`)
+- `KudosCardAdapter.swift` extracted: card-mapping helpers shared between `KudosViewContainer` and `AllKudosViewContainer` (DRY)
+- Localizable.xcstrings: 1 key added (`kudos.allKudos.title`, EN + VI)
+- Tests: 16 new unit tests; full suite green (384 passing)
+
+---
+
 ### Upcoming
 
 - `@Observable` macro migration (replaces `ObservableObject` / `@Published`)
-- SwiftPM local-package split per feature (revisit when 5th feature lands)
+- SwiftPM local-package split per feature (revisit when 6th feature lands)
 - Remote feature flags via Supabase `app_config` table

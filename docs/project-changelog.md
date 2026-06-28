@@ -4,6 +4,27 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/all-kudos] — 2026-06-28
+
+### All Kudos full-page screen with paginated infinite scroll, like propagation, and DRY card adapter
+
+**Plan:** [`plans/260627-1813-all-kudos-screen/`](../plans/260627-1813-all-kudos-screen/plan.md)
+
+**What shipped:**
+- New `AllKudos/` directory under `Kudos/Presentation/`: `AllKudosViewContainer`, `AllKudosView`, `AllKudosFeedList`, `KudosCardAdapter`
+- `KudosViewContainer` wrapped in `NavigationStack`; `KudosViewContainer.Route` enum (`case all`); `onViewAllKudos` pushes `.all`; `AllKudosViewContainer` mounted as `navigationDestination`
+- `KudosViewModel+AllFeed.swift` extension: `allFeed: [Kudos]`, `allFeedLoadState: AllFeedLoadState`, `loadAllFeedInitial`, `loadAllFeedMore`, `resetAllFeed`; paginated via `repository.fetchKudosFeed` (bypasses `LoadKudosScreenUseCase`)
+- `repository: any KudosRepositoryProtocol` added to `KudosViewModel` constructor; `AllFeedLoadState` enum added to `KudosViewModel`
+- `KudosViewModel+Likes` extended to propagate like/unlike into `allFeed` alongside `feed` and `highlights`
+- `KudosCardAdapter.swift` extracted: `cardData(from:departments:)` shared between `KudosViewContainer` and `AllKudosViewContainer` (removed duplicate static helper from `KudosViewContainer`)
+- `copyLink` extended to search `allFeed` as third fallback
+
+**Localization:** 1 key added — `kudos.allKudos.title` (EN + VI)
+
+**Tests:** 16 new unit tests; full suite green (384 passing)
+
+---
+
 ## [feature/create-kudos] — 2026-06-24
 
 ### Create Kudos compose flow with multi-image upload, hashtag picker, anonymous mode, and full TC coverage
