@@ -91,6 +91,10 @@ final class KudosLocalizationKeysExistTests: XCTestCase {
     func testListViewAll() { assertKeyExists("kudos.list.viewAll") }
     func testListEmpty() { assertKeyExists("kudos.list.empty") }
 
+    // MARK: - kudos.allKudos.*
+
+    func testAllKudosTitle() { assertKeyExists("kudos.allKudos.title") }
+
     // MARK: - kudos.recipients.*
 
     func testRecipientsEmpty() { assertKeyExists("kudos.recipients.empty") }

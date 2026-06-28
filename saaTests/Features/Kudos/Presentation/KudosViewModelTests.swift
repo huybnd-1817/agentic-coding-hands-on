@@ -33,6 +33,7 @@ final class KudosViewModelTests: XCTestCase {
             loadUseCase: loadUseCase,
             toggleReactionUseCase: toggleUseCase,
             clipboard: clipboard,
+            repository: repository,
             clock: clock
         )
     }

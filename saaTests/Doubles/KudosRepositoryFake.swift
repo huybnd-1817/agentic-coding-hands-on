@@ -81,6 +81,21 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
     var unlikeBehavior: UnlikeBehavior = .success(false)
     var createKudoBehavior: CreateKudoBehavior = .error(.createDenied)  // safe default — must be set explicitly
 
+    // MARK: - Page-indexed feed responses (for pagination testing)
+    //
+    // `feedPagesByPageIndex` maps page numbers to arrays of kudos. When set,
+    // `fetchKudosFeed` returns `feedPagesByPageIndex[page] ?? []` instead of
+    // consulting `feedBehavior`. This allows tests to seed deterministic paged
+    // responses without complicated behavior setup.
+    //
+    // `feedFetchError` overrides all behavior: when non-nil, `fetchKudosFeed`
+    // throws it immediately, regardless of `feedBehavior` or page mapping.
+    //
+    // Backwards-compatible: existing tests that do NOT set these fields get
+    // the prior behavior (empty dictionary → default `[]` on any page fetch).
+    var feedPagesByPageIndex: [Int: [Kudos]] = [:]
+    var feedFetchError: Error?
+
     // MARK: - Call counters
 
     private(set) var fetchHighlightCalls = 0
@@ -129,6 +144,18 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
         lastFeedFilter = filter
         lastFeedPage = page
         lastFeedPageSize = pageSize
+
+        // If feedFetchError is set, throw immediately (overrides all behavior).
+        if let error = feedFetchError {
+            throw error
+        }
+
+        // If feedPagesByPageIndex is populated, use page-indexed response.
+        if !feedPagesByPageIndex.isEmpty {
+            return feedPagesByPageIndex[page] ?? []
+        }
+
+        // Else fall back to the legacy feedBehavior.
         switch feedBehavior {
         case .success(let kudos): return kudos
         case .error(let error): throw error
