@@ -26,7 +26,8 @@ extension saaApp {
         return KudosViewModel(
             loadUseCase: loadUseCase,
             toggleReactionUseCase: toggleReactionUseCase,
-            clipboard: clipboard
+            clipboard: clipboard,
+            repository: repo
         )
     }
 

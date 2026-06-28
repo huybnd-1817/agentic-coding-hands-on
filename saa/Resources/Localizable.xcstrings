@@ -854,6 +854,23 @@
         }
       }
     },
+    "kudos.allKudos.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Kudos"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tất cả Kudos"
+          }
+        }
+      }
+    },
     "kudos.card.copyLink" : {
       "extractionState" : "manual",
       "localizations" : {

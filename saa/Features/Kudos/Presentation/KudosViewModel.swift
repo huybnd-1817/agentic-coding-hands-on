@@ -25,25 +25,47 @@ final class KudosViewModel: ObservableObject {
         case error(KudosError)
     }
 
+    // MARK: - All Feed load state (paginated infinite scroll)
+
+    enum AllFeedLoadState: Equatable {
+        case idle
+        case loading        // initial page in flight
+        case loaded         // at least one page loaded, more may exist
+        case loadingMore    // appending next page
+        case endOfList      // last page returned fewer than pageSize items
+        case error(KudosError)
+    }
+
     // MARK: - Published (read-only)
 
-    // `highlights` and `feed` are `internal` (not `private`) rather than
-    // `private(set)` because `KudosViewModel+Likes` (a separate file extension)
-    // must write optimistic like/unlike mutations into these arrays directly.
+    // `highlights`, `feed`, and `allFeed` are `internal` (not `private`) rather than
+    // `private(set)` because `KudosViewModel+Likes` and `KudosViewModel+AllFeed`
+    // (separate file extensions) must write optimistic like/unlike mutations and
+    // pagination results into these arrays directly.
     // Swift's `private` is file-scoped, so a cross-file extension cannot see
     // `private(set)` setters even within the same module.
     //
-    // Consolidating `+Likes` back into this file would keep access narrow but
-    // would push `KudosViewModel.swift` to ~310 LOC — exceeding the 200-LOC
+    // Consolidating `+Likes` / `+AllFeed` back into this file would keep access
+    // narrow but would push `KudosViewModel.swift` well beyond the 200-LOC
     // file-size guideline. The widened access is intentional and documented
     // here so future reviewers do not treat it as a gap.
     //
-    // Phase 09 reviewer note: if the file-size guideline is relaxed in a future
-    // clean-up pass, consolidation is straightforward — move all of
-    // `KudosViewModel+Likes.swift` into this file and restore `private(set)`.
+    // Future clean-up note: if the file-size guideline is relaxed, consolidation
+    // is straightforward — move the extension files into this file and restore
+    // `private(set)` on all widened properties.
     @Published private(set) var loadState: LoadState = .idle
     @Published var highlights: [Kudos] = []
     @Published var feed: [Kudos] = []
+
+    // MARK: - All Feed (paginated — managed by KudosViewModel+AllFeed)
+
+    // `allFeed`, `allFeedPage`, `isAllFeedFetchInFlight` are `internal` for the
+    // same cross-file extension reason documented above on `highlights`/`feed`.
+    @Published var allFeed: [Kudos] = []
+    @Published var allFeedLoadState: AllFeedLoadState = .idle
+    var allFeedPage: Int = 0
+    let allFeedPageSize: Int = 20
+    var isAllFeedFetchInFlight: Bool = false
     @Published private(set) var hashtags: [Hashtag] = []
     @Published private(set) var departments: [Department] = []
     @Published private(set) var stats: UserStats = .zero
@@ -78,12 +100,16 @@ final class KudosViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    // `toggleReactionUseCase` and `clipboard` are `internal` (not `private`)
+    // `toggleReactionUseCase`, `clipboard`, and `repository` are `internal` (not `private`)
     // for the same cross-file extension reason documented above on `highlights`/`feed`.
     // `loadUseCase` is only called from this file so it remains `private`.
+    // `repository` is exposed to `KudosViewModel+AllFeed` which calls `fetchKudosFeed`
+    // directly (the LoadKudosScreenUseCase bundles 5 concurrent fetches not needed
+    // for the single-endpoint all-feed pagination).
     private let loadUseCase: LoadKudosScreenUseCase
     let toggleReactionUseCase: ToggleKudosReactionUseCase
     let clipboard: any KudosClipboardServicing
+    let repository: any KudosRepositoryProtocol
     private let clock: () -> Date
 
     // MARK: - Computed
@@ -99,11 +125,13 @@ final class KudosViewModel: ObservableObject {
         loadUseCase: LoadKudosScreenUseCase,
         toggleReactionUseCase: ToggleKudosReactionUseCase,
         clipboard: any KudosClipboardServicing,
+        repository: any KudosRepositoryProtocol,
         clock: @escaping () -> Date = { Date() }
     ) {
         self.loadUseCase = loadUseCase
         self.toggleReactionUseCase = toggleReactionUseCase
         self.clipboard = clipboard
+        self.repository = repository
         self.clock = clock
     }
 
@@ -193,6 +221,7 @@ final class KudosViewModel: ObservableObject {
     func copyLink(_ id: KudosID) {
         let kudos = highlights.first(where: { $0.id == id })
             ?? feed.first(where: { $0.id == id })
+            ?? allFeed.first(where: { $0.id == id })
         if let url = kudos?.shareURL {
             clipboard.copy(url.absoluteString)
         }

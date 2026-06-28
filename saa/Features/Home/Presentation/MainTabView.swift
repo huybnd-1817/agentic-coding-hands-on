@@ -89,7 +89,8 @@ struct MainTabView<HomeContent: View>: View {
         kudosViewModel: KudosViewModel(
             loadUseCase: LoadKudosScreenUseCase(repository: MockKudosRepository()),
             toggleReactionUseCase: ToggleKudosReactionUseCase(repository: MockKudosRepository()),
-            clipboard: UIKitKudosClipboardService()
+            clipboard: UIKitKudosClipboardService(),
+            repository: MockKudosRepository()
         )
     )
 }

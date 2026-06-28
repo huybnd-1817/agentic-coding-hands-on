@@ -15,6 +15,15 @@ import SwiftUI
 /// `HomeViewContainer` and `LoginViewContainer`.
 struct KudosViewContainer: View {
 
+    // MARK: - Routes
+
+    /// Navigation routes pushed from inside the Kudos tab. Currently only `all`
+    /// (the All Kudos screen); future routes (kudos detail, sender profile) would
+    /// extend this enum.
+    enum Route: Hashable {
+        case all
+    }
+
     // MARK: - ViewModel
 
     @StateObject var vm: KudosViewModel
@@ -27,13 +36,35 @@ struct KudosViewContainer: View {
 
     @State private var isCreateKudosPresented = false
 
+    // MARK: - Navigation state
+
+    @State private var navPath: [Route] = []
+
     // MARK: - Body
 
     var body: some View {
+        NavigationStack(path: $navPath) {
+            rootContent
+                .navigationDestination(for: Route.self) { route in
+                    switch route {
+                    case .all:
+                        AllKudosViewContainer(
+                            vm: vm,
+                            onBack: { navPath.removeLast() }
+                        )
+                        .toolbar(.hidden, for: .navigationBar)
+                    }
+                }
+        }
+    }
+
+    // MARK: - Root content (Kudos tab landing screen)
+
+    private var rootContent: some View {
         let departmentLookup = Dictionary(uniqueKeysWithValues: vm.departments.map { ($0.id, $0) })
         return KudosView(
-            highlights: vm.highlights.map { Self.cardData(from: $0, departments: departmentLookup) },
-            feed: vm.feed.map { Self.cardData(from: $0, departments: departmentLookup) },
+            highlights: vm.highlights.map { KudosCardAdapter.cardData(from: $0, departments: departmentLookup) },
+            feed: vm.feed.map { KudosCardAdapter.cardData(from: $0, departments: departmentLookup) },
             hashtagOptions: vm.hashtags.map(Self.hashtagOption),
             departmentOptions: vm.departments.map(Self.departmentOption),
             stats: Self.personalStatsData(from: vm.stats),
@@ -55,11 +86,12 @@ struct KudosViewContainer: View {
             onRecipientTap: { _ in },
             onTopRecipientTap: { _ in },
             onOpenSecretBox: { vm.openSecretBox() },
-            onViewAllKudos: {},
+            onViewAllKudos: { navPath.append(.all) },
             onSelectHashtag: { id in Task { await vm.setHashtagFilter(id) } },
             onSelectDepartment: { id in Task { await vm.setDepartmentFilter(id) } }
         )
         .task { await vm.onAppear() }
+        .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $isCreateKudosPresented) {
             WriteKudoFormStubView(
                 onKudosCreated: { kudos in
@@ -120,31 +152,6 @@ struct KudosViewContainer: View {
 
 private extension KudosViewContainer {
 
-    static func cardData(from kudos: Kudos, departments: [UUID: Department]) -> KudosCardData {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm - MM/dd/yyyy"
-        formatter.timeZone = TimeZone(identifier: "Asia/Saigon")
-
-        return KudosCardData(
-            id: kudos.id,
-            senderName: kudos.sender.displayName,
-            senderCode: codeLabel(for: kudos.sender, departments: departments),
-            senderStarTier: StarTier.from(received: kudos.sender.kudosReceivedCount),
-            senderAvatarURL: kudos.sender.avatarURL,
-            recipientName: kudos.recipient.displayName,
-            recipientCode: codeLabel(for: kudos.recipient, departments: departments),
-            recipientStarTier: StarTier.from(received: kudos.recipient.kudosReceivedCount),
-            recipientAvatarURL: kudos.recipient.avatarURL,
-            timestampText: formatter.string(from: kudos.createdAt),
-            title: kudos.title,
-            body: kudos.message,
-            hashtags: kudos.hashtags.map { $0.tag.hasPrefix("#") ? String($0.tag.dropFirst()) : $0.tag },
-            heartCount: kudos.heartCount,
-            isLikedByMe: kudos.isLikedByMe,
-            canLike: kudos.canLike
-        )
-    }
-
     static func hashtagOption(from hashtag: Hashtag) -> HashtagOption {
         HashtagOption(id: hashtag.id, label: hashtag.tag)
     }
@@ -182,32 +189,9 @@ private extension KudosViewContainer {
             // consistent across renders (no random UUID per call).
             id: author.userId?.uuidString ?? "anon-\(author.displayName)",
             name: author.displayName,
-            avatarAssetName: avatarAsset(for: author),
+            avatarAssetName: KudosCardAdapter.avatarAsset(for: author),
             rewardLabel: rewardLabel
         )
-    }
-
-    // MARK: - Code label (department code with employee-code fallback)
-
-    /// Resolves the `code` slot shown under the avatar to the author's
-    /// department code (e.g. `"CEV1"`) — looked up via `departmentId`.
-    /// Falls back to `employeeCode` when departmentId is unset, then to
-    /// empty so the row still lays out cleanly.
-    static func codeLabel(for author: KudosAuthor, departments: [UUID: Department]) -> String {
-        if let departmentId = author.departmentId, let department = departments[departmentId] {
-            return department.code
-        }
-        return author.employeeCode ?? ""
-    }
-
-    // MARK: - Avatar asset name (local fallback until AsyncImage lands in phase-09)
-
-    static func avatarAsset(for author: KudosAuthor) -> String {
-        // Phase-09 will replace this with AsyncImage from author.avatarURL.
-        // For now, deterministically pick a local asset based on author id parity.
-        guard let id = author.userId else { return "kudos-card-avatar-recipient" }
-        let lastByte = id.uuid.15
-        return lastByte % 2 == 0 ? "kudos-card-avatar-female" : "kudos-card-avatar-male"
     }
 }
 
@@ -219,7 +203,8 @@ private extension KudosViewContainer {
         vm: KudosViewModel(
             loadUseCase: LoadKudosScreenUseCase(repository: MockKudosRepository()),
             toggleReactionUseCase: ToggleKudosReactionUseCase(repository: MockKudosRepository()),
-            clipboard: UIKitKudosClipboardService()
+            clipboard: UIKitKudosClipboardService(),
+            repository: MockKudosRepository()
         )
     )
     .environmentObject(LanguagePreference())

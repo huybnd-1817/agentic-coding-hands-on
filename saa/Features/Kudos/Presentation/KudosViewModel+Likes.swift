@@ -49,23 +49,31 @@ extension KudosViewModel {
 
     // MARK: - Internal helpers (called from KudosViewModel.swift via same-module access)
 
-    /// Returns the `Kudos` with the given id, searching highlights first then feed.
+    /// Returns the `Kudos` with the given id, searching highlights, feed, then allFeed.
     func findKudos(id: KudosID) -> Kudos? {
         highlights.first(where: { $0.id == id })
             ?? feed.first(where: { $0.id == id })
+            ?? allFeed.first(where: { $0.id == id })
     }
 
     /// Mutates `isLikedByMe` and adjusts `heartCount` by `heartCountDelta` for the
-    /// kudos matching `id` in both `highlights` and `feed`.
+    /// kudos matching `id` in `highlights`, `feed`, and `allFeed`.
     ///
     /// Swift structs are value types; we must replace the element in the array.
     /// Using `map` keeps the array-level assignment on MainActor where it belongs.
+    /// `allFeed` is also walked so a like toggle on the All Kudos screen propagates
+    /// to the Kudos tab preview and vice-versa (clarifications.md §like-state-sync).
     func updateKudos(id: KudosID, isLikedByMe: Bool, heartCountDelta: Int) {
         highlights = highlights.map { kudos in
             guard kudos.id == id else { return kudos }
             return patched(kudos, isLikedByMe: isLikedByMe, heartCountDelta: heartCountDelta)
         }
         feed = feed.map { kudos in
+            guard kudos.id == id else { return kudos }
+            return patched(kudos, isLikedByMe: isLikedByMe, heartCountDelta: heartCountDelta)
+        }
+        // Added: mirror mutation into allFeed for cross-screen like-state sync.
+        allFeed = allFeed.map { kudos in
             guard kudos.id == id else { return kudos }
             return patched(kudos, isLikedByMe: isLikedByMe, heartCountDelta: heartCountDelta)
         }
