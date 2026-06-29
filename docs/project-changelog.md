@@ -4,6 +4,19 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/all-kudos] — 2026-06-29 — Test hardening (tests only)
+
+### All Kudos: unit + UI test expansion
+
+**Plan:** [`plans/260629-0934-all-kudos-tests/`](../plans/260629-0934-all-kudos-tests/plan.md)
+
+**What shipped:**
+- 9 new unit tests: `saaTests/Features/Kudos/Presentation/KudosCardAdapterTests.swift` (201 LOC) — covers `cardData(from:departments:)` adapter across nil/missing/matched department, star-tier mapping, hashtag assembly, and reaction state
+- 5 new XCUITests: `saaUITests/AllKudosScreenUITests.swift` — covers initial load, pagination trigger, like toggle, empty state, and navigation back; documents pre-existing SwiftUI accessibility-identifier propagation quirk in `AllKudosView` (not introduced here)
+- Zero production code changes; full suite green (393 passing)
+
+---
+
 ## [feature/all-kudos] — 2026-06-28
 
 ### All Kudos full-page screen with paginated infinite scroll, like propagation, and DRY card adapter
