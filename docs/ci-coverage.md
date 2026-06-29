@@ -148,7 +148,7 @@ CI steps in order:
    — picks the first available `iPhone N…` so a runner-image change cannot
    produce another `Unable to find a device` failure.
 5. `brew install xcresultparser` (a7ex tap) for Cobertura conversion.
-6. `xcodebuild test … -enableCodeCoverage YES`.
+6. `xcodebuild test … -enableCodeCoverage YES -retry-tests-on-failure -test-iterations 3` — flaky UI tests are retried up to 3 attempts; unit tests are deterministic so the retry budget applies to UI tests in practice.
 7. `xcrun xccov view --report` summary (gated on `if: success()`).
 8. `xcresultparser -o cobertura → coverage.xml` (gated on `if: success()`).
 9. `codecov/codecov-action@v5` upload (gated on `if: success()`, `CODECOV_TOKEN`

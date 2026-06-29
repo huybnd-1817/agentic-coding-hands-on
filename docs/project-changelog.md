@@ -14,6 +14,7 @@ All significant changes to the SAA iOS app. Newest first.
 - 9 new unit tests: `saaTests/Features/Kudos/Presentation/KudosCardAdapterTests.swift` (201 LOC) — covers `cardData(from:departments:)` adapter across nil/missing/matched department, star-tier mapping, hashtag assembly, and reaction state
 - 5 new XCUITests: `saaUITests/AllKudosScreenUITests.swift` — covers initial load, pagination trigger, like toggle, empty state, and navigation back; documents pre-existing SwiftUI accessibility-identifier propagation quirk in `AllKudosView` (not introduced here)
 - Zero production code changes; full suite green (393 passing)
+- CI: added `-retry-tests-on-failure -test-iterations 3` to `xcodebuild test` in `.github/workflows/ios-tests.yml`; resolves flaky UI test failures (run #28360918205 green after #28357941117 failed)
 
 ---
 
