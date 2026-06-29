@@ -27,6 +27,7 @@ final class KudosViewModelCopyLinkAndGuardsTests: XCTestCase {
             loadUseCase: loadUseCase,
             toggleReactionUseCase: toggleUseCase,
             clipboard: clipboard,
+            repository: repo,
             clock: { Date(timeIntervalSince1970: 0) }
         )
         return (vm, repo, clipboard)

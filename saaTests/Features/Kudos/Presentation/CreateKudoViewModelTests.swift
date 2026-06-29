@@ -319,7 +319,8 @@ final class CreateKudoViewModelTests: XCTestCase {
         let kudosVM = KudosViewModel(
             loadUseCase: loadUseCase,
             toggleReactionUseCase: toggleUseCase,
-            clipboard: KudosClipboardServiceFake()
+            clipboard: KudosClipboardServiceFake(),
+            repository: repo
         )
         let existing = Kudos.fixture(id: UUID())
         kudosVM.feed = [existing]

@@ -69,13 +69,20 @@ jobs:
           brew tap a7ex/formulae
           brew install a7ex/formulae/xcresultparser
 
+      # `-retry-tests-on-failure -test-iterations 3` re-runs each failing test up
+      # to 2 additional times. Justified by repeated UI-test flakes traced to
+      # simulator infrastructure (`kAXErrorServerNotFound`, animation-monitor
+      # bring-up race) on parallel-clone runs — NOT product code. Unit tests
+      # are deterministic so the retry budget effectively gates UI tests only.
       - name: Run tests with coverage
         run: |
           xcodebuild test \
             -scheme saa \
             -destination "platform=iOS Simulator,OS=latest,name=${{ steps.sim.outputs.name }}" \
             -enableCodeCoverage YES \
-            -resultBundlePath ./saa-tests.xcresult
+            -resultBundlePath ./saa-tests.xcresult \
+            -retry-tests-on-failure \
+            -test-iterations 3
 
       # Only summarize coverage if tests actually produced a bundle with
       # coverage data — otherwise the step exits non-zero and masks the

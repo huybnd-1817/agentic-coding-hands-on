@@ -110,10 +110,16 @@ saa/
 │       │   ├── UserStatsMapper.swift
 │       │   └── KudosErrorMapper.swift
 │       └── Presentation/
-│           ├── KudosViewContainer.swift   # mounted on MainTabView tab 1
+│           ├── KudosViewContainer.swift   # NavigationStack root on MainTabView tab 1; Route enum (case all)
 │           ├── KudosView.swift
-│           ├── KudosViewModel.swift       # @MainActor ObservableObject
-│           ├── KudosViewModel+Likes.swift # reaction toggle extension
+│           ├── KudosViewModel.swift       # @MainActor ObservableObject; AllFeedLoadState enum; repository dependency added
+│           ├── KudosViewModel+Likes.swift # reaction toggle; propagates into feed, highlights, allFeed
+│           ├── KudosViewModel+AllFeed.swift  # paginated all-feed extension (feature/all-kudos)
+│           ├── AllKudos/                  # full-page All Kudos screen (feature/all-kudos)
+│           │   ├── AllKudosViewContainer.swift
+│           │   ├── AllKudosView.swift
+│           │   ├── AllKudosFeedList.swift
+│           │   └── KudosCardAdapter.swift # shared card-mapping helper (DRY; replaces inline static in KudosViewContainer)
 │           ├── Components/               # KudosCard, filter chips, carousel dots
 │           ├── Create/                   # compose flow (feature/create-kudos)
 │           │   ├── CreateKudoViewContainer.swift
@@ -168,6 +174,7 @@ saaUITests/
 ├── HomeIntegrationUITests.swift
 ├── saaUITests.swift
 └── TestSupport/UITestHelpers.swift
+                                           # Total: 384 passing (feature/all-kudos)
 ```
 
 ## Dependency diagram
