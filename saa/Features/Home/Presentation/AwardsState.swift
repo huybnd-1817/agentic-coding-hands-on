@@ -19,4 +19,10 @@ enum AwardsState: Equatable {
 
     /// Fetch failed (TC_GUI_004). UI surfaces a Retry button.
     case error(AwardsError)
+
+    /// Convenience accessor — returns the loaded awards or `[]` for all other states.
+    var loadedAwards: [Award] {
+        if case .loaded(let awards) = self { return awards }
+        return []
+    }
 }
