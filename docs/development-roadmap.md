@@ -12,6 +12,7 @@
 | 4 | Sun*Kudos feature (full implementation, replaces stub screens) | Complete | 2026-06-19 |
 | 5 | Create Kudos compose flow (multi-image upload, hashtag picker, anonymous mode) | Complete | 2026-06-24 |
 | 6 | All Kudos full-page screen (paginated feed, like propagation, DRY card adapter) | Complete | 2026-06-28 |
+| 7 | Kudo detail screen (image lightbox, author profile stub, deep-link routing) | Complete | 2026-06-29 |
 
 ---
 
@@ -92,8 +93,24 @@
 
 ---
 
+### Phase 7 — Kudo Detail Screen
+
+**Branch:** `feature/view-kudo-detail`
+**Shipped:** 2026-06-29
+
+#### Scope
+- New `Detail/` directory under `Kudos/Presentation/`: `ViewKudoDetailView`, `ImageLightboxView`, `KudosAuthorProfileStubView`
+- `KudosViewContainer.Route` extended with `case detail(Kudos)` and `case profile(KudosAuthor)`; `popToRootAndFilterHashtag(_:)` helper navigates back to feed and applies hashtag filter
+- `ImageLightboxView`: fullscreen swipe-pager for kudo attachment images
+- `KudosAuthorProfileStubView`: coming-soon placeholder for author profile (deferred full profile feature)
+- Localization: 4 keys added (`kudos.detail.*`, EN + VI)
+- Tests: `KudosViewContainerRouteTests` + `KudosViewModelLikeSyncDetailTests` (unit); `ViewKudoDetailScreenUITests` (UI); `KudosLocalizationKeysExistTests` extended
+
+---
+
 ### Upcoming
 
+- Full author profile screen (replaces `KudosAuthorProfileStubView`)
 - `@Observable` macro migration (replaces `ObservableObject` / `@Published`)
-- SwiftPM local-package split per feature (revisit when 6th feature lands)
+- SwiftPM local-package split per feature (revisit when 7th feature lands)
 - Remote feature flags via Supabase `app_config` table
