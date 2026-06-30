@@ -23,7 +23,12 @@ enum HomeMockData {
             descriptionEN: "All-rounded outstanding individuals",
             descriptionVI: "Cá nhân xuất sắc toàn diện",
             thumbnailURL: nil,
-            sortOrder: 1
+            sortOrder: 1,
+            quantity: 10,
+            quantityUnit: "Cá nhân",
+            prizeValueIndividual: "7.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         ),
         Award(
             id: UUID(),
@@ -33,7 +38,12 @@ enum HomeMockData {
             descriptionEN: "Project teams with business results beyond expectations",
             descriptionVI: "Tập thể dự án xuất sắc vượt kỳ vọng",
             thumbnailURL: nil,
-            sortOrder: 2
+            sortOrder: 2,
+            quantity: 2,
+            quantityUnit: "Tập thể",
+            prizeValueIndividual: "15.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         ),
         Award(
             id: UUID(),
@@ -43,7 +53,12 @@ enum HomeMockData {
             descriptionEN: "Outstanding project managers — Aim High, Be Agile",
             descriptionVI: "Nhà quản lý dự án xuất sắc — Aim High, Be Agile",
             thumbnailURL: nil,
-            sortOrder: 3
+            sortOrder: 3,
+            quantity: 3,
+            quantityUnit: "Cá nhân",
+            prizeValueIndividual: "7.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         ),
         Award(
             id: UUID(),
@@ -53,7 +68,12 @@ enum HomeMockData {
             descriptionEN: "Exemplary leaders driving sustainable growth",
             descriptionVI: "Nhà lãnh đạo tiêu biểu dẫn dắt phát triển bền vững",
             thumbnailURL: nil,
-            sortOrder: 4
+            sortOrder: 4,
+            quantity: 1,
+            quantityUnit: "Cá nhân",
+            prizeValueIndividual: "10.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         ),
         Award(
             id: UUID(),
@@ -63,7 +83,12 @@ enum HomeMockData {
             descriptionEN: "Generative mindset shaping new standards",
             descriptionVI: "Tư duy kiến tạo, định hình chuẩn mực mới",
             thumbnailURL: nil,
-            sortOrder: 5
+            sortOrder: 5,
+            quantity: 1,
+            quantityUnit: "Cá nhân hoặc tập thể",
+            prizeValueIndividual: "5.000.000 VNĐ",
+            prizeValueTeam: "8.000.000 VNĐ",
+            prizeNote: "cho giải cá nhân"
         ),
         Award(
             id: UUID(),
@@ -73,7 +98,12 @@ enum HomeMockData {
             descriptionEN: "Most outstanding individual of the year",
             descriptionVI: "Cá nhân xuất sắc nhất năm",
             thumbnailURL: nil,
-            sortOrder: 6
+            sortOrder: 6,
+            quantity: 1,
+            quantityUnit: "Cá nhân",
+            prizeValueIndividual: "15.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho giải cá nhân"
         ),
     ]
 

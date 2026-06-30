@@ -22,4 +22,19 @@ struct Award: Sendable, Equatable, Identifiable {
     let thumbnailURL: URL?
     /// Ascending sort key — surfaced as the natural display order.
     let sortOrder: Int
+
+    // MARK: Detail-screen fields (Phase 07)
+
+    /// Number of award slots (e.g. 10 for Top Talent, 1 for MVP).
+    let quantity: Int
+    /// Recipient type label stored in Vietnamese (e.g. "Cá nhân", "Tập thể").
+    let quantityUnit: String
+    /// Formatted prize value for an individual recipient (e.g. "7.000.000 VNĐ").
+    let prizeValueIndividual: String
+    /// Formatted prize value for a team recipient. Non-nil only for the
+    /// Signature 2025 - Creator variant which awards both individual and team.
+    let prizeValueTeam: String?
+    /// Contextual note displayed beneath the prize value
+    /// (e.g. "cho mỗi giải thưởng").
+    let prizeNote: String
 }
