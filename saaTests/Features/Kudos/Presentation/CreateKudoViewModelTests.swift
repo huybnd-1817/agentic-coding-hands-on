@@ -387,7 +387,6 @@ private extension Kudos {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: [],
-            photoURL: nil,
             attachments: [],
             heartCount: 0,
             isLikedByMe: false,

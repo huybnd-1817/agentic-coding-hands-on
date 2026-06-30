@@ -153,6 +153,14 @@ final class KudosLocalizationKeysExistTests: XCTestCase {
     // MARK: - kudos.retry
 
     func testRetry() { assertKeyExists("kudos.retry") }
+
+    // MARK: - kudos.detail.*
+
+    func testDetailTitle() { assertKeyExists("kudos.detail.title") }
+    func testDetailProfileTitle() { assertKeyExists("kudos.detail.profile.title") }
+    func testDetailProfileComingSoon() { assertKeyExists("kudos.detail.profile.comingSoon") }
+    func testDetailLightboxClose() { assertKeyExists("kudos.detail.lightbox.close") }
+    func testAnonymousSenderLabel() { assertKeyExists("kudos.anonymousSender.label") }
 }
 
 // MARK: - Bundle helper

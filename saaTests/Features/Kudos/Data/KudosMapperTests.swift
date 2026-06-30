@@ -66,7 +66,6 @@ final class KudosMapperTests: XCTestCase {
             message: "Great work!",
             is_anonymous: isAnonymous,
             anonymous_nickname: anonymousNickname,
-            photo_url: nil,
             status: "published",
             created_at: baseDate,
             deleted_at: nil,
@@ -223,16 +222,6 @@ final class KudosMapperTests: XCTestCase {
 
         let kudos = KudosMapper.from(dto, currentUserId: currentUserId, isLikedByMe: false)
         XCTAssertEqual(kudos.hashtags.count, 0)
-    }
-
-    // MARK: - Photo URL handling
-
-    func testPhotoURLNil_mapsToNil() {
-        let dto = makeKudosDTO(sender: makeSenderProfile(), recipient: makeRecipientProfile())
-        // DTO photo_url defaults to nil
-
-        let kudos = KudosMapper.from(dto, currentUserId: currentUserId, isLikedByMe: false)
-        XCTAssertNil(kudos.photoURL)
     }
 
     // MARK: - user_stats nested decode (HIGH-2)

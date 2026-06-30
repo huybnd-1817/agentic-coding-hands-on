@@ -136,18 +136,18 @@ final class KudosViewModelTests: XCTestCase {
         XCTAssertEqual(vm.carouselIndex, 1)
     }
 
-    func testSetHashtagFilter_reTapSame_clearsFilter() async {
+    func testToggleHashtagFilter_reTapSame_clearsFilter() async {
         let repo = KudosRepositoryFake()
         let vm = makeVM(repo: repo)
 
         let filterId = UUID()
 
-        // Set filter first
-        await vm.setHashtagFilter(filterId)
+        // Set filter first via the UI toggle entry point
+        await vm.toggleHashtagFilter(filterId)
         XCTAssertEqual(vm.selectedHashtagId, filterId)
 
-        // Re-tap same — should clear
-        await vm.setHashtagFilter(filterId)
+        // Re-tap same — should clear (toggle semantics live on `toggle*`, not `set*`)
+        await vm.toggleHashtagFilter(filterId)
 
         XCTAssertNil(vm.selectedHashtagId)  // Cleared
     }
@@ -173,18 +173,18 @@ final class KudosViewModelTests: XCTestCase {
         XCTAssertEqual(vm.carouselIndex, 1)
     }
 
-    func testSetDepartmentFilter_reTapSame_clearsFilter() async {
+    func testToggleDepartmentFilter_reTapSame_clearsFilter() async {
         let repo = KudosRepositoryFake()
         let vm = makeVM(repo: repo)
 
         let deptId = UUID()
 
-        // Set filter first
-        await vm.setDepartmentFilter(deptId)
+        // Set filter first via the UI toggle entry point
+        await vm.toggleDepartmentFilter(deptId)
         XCTAssertEqual(vm.selectedDepartmentId, deptId)
 
         // Re-tap same — should clear
-        await vm.setDepartmentFilter(deptId)
+        await vm.toggleDepartmentFilter(deptId)
 
         XCTAssertNil(vm.selectedDepartmentId)  // Cleared
     }
@@ -483,7 +483,6 @@ private func makeKudos(
         isAnonymous: false,
         anonymousNickname: nil,
         hashtags: [],
-        photoURL: nil,
         attachments: [],
         heartCount: heartCount,
         isLikedByMe: isLikedByMe,

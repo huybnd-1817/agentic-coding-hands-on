@@ -3,8 +3,13 @@ import XCTest
 
 // MARK: - KudosMapperAttachmentTests
 //
-// Verifies `KudosMapper.attachments(from:)` and the full `KudosMapper.from` path
-// with respect to the attachment/photo_url back-compat strategy.
+// Verifies `KudosMapper.attachments(from:)` and the full `KudosMapper.from`
+// path with respect to attachment mapping.
+//
+// Migration 20260630000000 dropped `kudos.photo_url` and backfilled any
+// legacy URLs into `kudos_attachments` (sort_order = 0), so the mapper no
+// longer has a photo_url fallback path. These tests assert the join-only
+// behaviour.
 
 final class KudosMapperAttachmentTests: XCTestCase {
 
@@ -15,7 +20,6 @@ final class KudosMapperAttachmentTests: XCTestCase {
     private let currentId   = UUID(uuidString: "BBBBBBBB-0000-0000-0000-000000000003")!
 
     private func makeDTO(
-        photoURL: String? = nil,
         attachments: [KudosAttachmentDTO]? = nil
     ) -> KudosDTO {
         KudosDTO(
@@ -26,7 +30,6 @@ final class KudosMapperAttachmentTests: XCTestCase {
             message: "M",
             is_anonymous: false,
             anonymous_nickname: nil,
-            photo_url: photoURL,
             status: "active",
             created_at: Date(),
             deleted_at: nil,
@@ -70,57 +73,16 @@ final class KudosMapperAttachmentTests: XCTestCase {
         XCTAssertEqual(result.map(\.sortOrder), [0, 1, 2])
     }
 
-    // MARK: - attachments(from:): nil join with photo_url fallback
+    // MARK: - attachments(from:): nil / empty join → empty list
 
-    func testAttachments_nilJoin_withPhotoURL_returnsSyntheticAttachment() {
-        let dto = makeDTO(photoURL: "https://example.com/photo.jpg", attachments: nil)
-        let result = KudosMapper.attachments(from: dto)
-
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].storagePath, "https://example.com/photo.jpg")
-        XCTAssertEqual(result[0].contentType, "image/jpeg")
-        XCTAssertEqual(result[0].sortOrder, 0)
-        XCTAssertEqual(result[0].byteSize, 0)  // synthetic — byte size unknown
-    }
-
-    // MARK: - attachments(from:): empty join with photo_url fallback
-
-    func testAttachments_emptyJoin_withPhotoURL_returnsSyntheticAttachment() {
-        let dto = makeDTO(photoURL: "https://example.com/photo.jpg", attachments: [])
-        let result = KudosMapper.attachments(from: dto)
-
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].storagePath, "https://example.com/photo.jpg")
-    }
-
-    // MARK: - attachments(from:): nil join, nil photo_url → empty
-
-    func testAttachments_nilJoinAndNilPhotoURL_returnsEmpty() {
-        let dto = makeDTO(photoURL: nil, attachments: nil)
-        let result = KudosMapper.attachments(from: dto)
+    func testAttachments_nilJoin_returnsEmpty() {
+        let result = KudosMapper.attachments(from: makeDTO(attachments: nil))
         XCTAssertTrue(result.isEmpty)
     }
 
-    // MARK: - attachments(from:): empty join, nil photo_url → empty
-
-    func testAttachments_emptyJoinAndNilPhotoURL_returnsEmpty() {
-        let dto = makeDTO(photoURL: nil, attachments: [])
-        let result = KudosMapper.attachments(from: dto)
+    func testAttachments_emptyJoin_returnsEmpty() {
+        let result = KudosMapper.attachments(from: makeDTO(attachments: []))
         XCTAssertTrue(result.isEmpty)
-    }
-
-    // MARK: - attachments(from:): populated join takes precedence over photo_url
-
-    func testAttachments_populatedJoin_ignoresPhotoURL() {
-        // When the join has rows, photo_url back-compat must not be applied.
-        let dto = makeDTO(
-            photoURL: "https://example.com/legacy.jpg",
-            attachments: [makeAttachmentDTO(sortOrder: 0)]
-        )
-        let result = KudosMapper.attachments(from: dto)
-
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].storagePath, "user/file0.jpg")  // from join, not photo_url
     }
 
     // MARK: - Full KudosMapper.from: attachments field populated
@@ -134,7 +96,7 @@ final class KudosMapperAttachmentTests: XCTestCase {
     }
 
     func testFullMapper_noAttachments_emptyList() {
-        let dto = makeDTO(photoURL: nil, attachments: [])
+        let dto = makeDTO(attachments: [])
         let kudos = KudosMapper.from(dto, currentUserId: currentId, isLikedByMe: false)
         XCTAssertTrue(kudos.attachments.isEmpty)
     }

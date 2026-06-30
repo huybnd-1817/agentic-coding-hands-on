@@ -70,7 +70,6 @@ final class KudosViewModelAllFeedTests: XCTestCase {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: [],
-            photoURL: nil,
             attachments: [],
             heartCount: heartCount,
             isLikedByMe: isLikedByMe,
@@ -213,6 +212,48 @@ final class KudosViewModelAllFeedTests: XCTestCase {
         // For this test we just verify guard prevents double-fetch during load
         let initialCount = vm.allFeed.count
         XCTAssertGreaterThan(initialCount, 0)
+    }
+
+    /// Regression: pushing the Detail Kudo screen on top of All Kudos and
+    /// popping back fires `.task` again. The loader MUST no-op so the existing
+    /// `vm.allFeed` (and its ScrollView scroll position) survive the round-trip.
+    func test_loadAllFeedInitial_whenAlreadyLoaded_isNoOp_preservingFeed() async {
+        let repo = KudosRepositoryFake()
+        repo.feedPagesByPageIndex[0] = (0..<20).map { _ in makeKudos() }
+        let vm = makeVM(repo: repo)
+
+        await vm.loadAllFeedInitial()
+        XCTAssertEqual(vm.allFeedLoadState, .loaded)
+        let firstFeed = vm.allFeed
+        let fetchCallsAfterFirst = repo.fetchFeedCalls
+
+        // Simulate detail push + pop — .task re-fires loadAllFeedInitial.
+        await vm.loadAllFeedInitial()
+
+        XCTAssertEqual(repo.fetchFeedCalls, fetchCallsAfterFirst,
+                       "Second call must not hit the repository")
+        XCTAssertEqual(vm.allFeed.map(\.id), firstFeed.map(\.id),
+                       "Existing feed must survive — scroll position depends on it")
+    }
+
+    /// After an error, calling `loadAllFeedInitial()` again is the retry path
+    /// (no separate retry method exists). The idempotent guard MUST allow `.error`
+    /// to fall through.
+    func test_loadAllFeedInitial_afterError_retries() async {
+        let repo = KudosRepositoryFake()
+        repo.feedFetchError = KudosError.network
+        let vm = makeVM(repo: repo)
+
+        await vm.loadAllFeedInitial()
+        XCTAssertEqual(vm.allFeedLoadState, .error(.network))
+
+        // Clear the error and retry.
+        repo.feedFetchError = nil
+        repo.feedPagesByPageIndex[0] = (0..<3).map { _ in makeKudos() }
+
+        await vm.loadAllFeedInitial()
+        XCTAssertEqual(vm.allFeedLoadState, .endOfList)
+        XCTAssertEqual(vm.allFeed.count, 3)
     }
 
     func test_loadAllFeedMore_blockedWhenNotLoaded() async {
