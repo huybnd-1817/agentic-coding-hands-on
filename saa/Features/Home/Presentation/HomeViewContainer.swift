@@ -61,6 +61,10 @@ struct HomeViewContainer: View {
         MainTabView(
             home: homeStack,
             externalSelection: $activeTab,
+            awardsContainer: saaApp.makeAwardsViewContainer(
+                awards: viewModel.state.loadedAwards,
+                activeTab: $activeTab
+            ),
             kudosViewModel: kudosViewModel
         )
     }
@@ -119,7 +123,7 @@ struct HomeViewContainer: View {
     private func destination(for route: HomeRoute) -> some View {
         switch route {
         case .awardsOverview:   AwardsOverviewStubView()
-        case .awardDetail(let id): AwardDetailStubView(awardId: id)
+        case .awardDetail(let id): awardDetailDestination(for: id)
         case .kudosOverview:    KudosOverviewStubView()
         case .kudosDetail:      KudosDetailStubView()
         case .kudosFeed:        KudosFeedStubView()
@@ -133,6 +137,36 @@ struct HomeViewContainer: View {
             )
         case .notifications:    NotificationsPanelStubView()
         case .search:           SearchStubView()
+        }
+    }
+
+    // MARK: - Award detail destination
+
+    /// Builds the Award Detail push destination for a given award UUID.
+    ///
+    /// Looks up the award from the current loaded state. If the list is still
+    /// loading or the id is not found, falls back to a brief loading placeholder
+    /// so the push never crashes.
+    @ViewBuilder
+    private func awardDetailDestination(for id: UUID) -> some View {
+        let awards = viewModel.state.loadedAwards
+        if let award = awards.first(where: { $0.id == id }) {
+            AwardDetailView(
+                vm: AwardDetailViewModel(awards: awards, initiallySelected: award),
+                unreadCount: viewModel.unreadCount,
+                selectedLanguage: $languagePreference.current,
+                onTapKudosCTA: { activeTab = .kudos },
+                onBellTap: { push(.notifications) },
+                onSearchTap: { push(.search) },
+                onLanguageChange: { languagePreference.current = $0 }
+            )
+            .toolbar(.hidden, for: .navigationBar)
+        } else {
+            ZStack {
+                Color(red: 0.0, green: 16.0 / 255, blue: 26.0 / 255).ignoresSafeArea()
+                ProgressView().tint(.white)
+            }
+            .accessibilityIdentifier("award.detail.loading")
         }
     }
 

@@ -43,19 +43,25 @@ struct HomeHeaderView: View {
                     chipAccessibilityIdentifier: "home.header.language"
                 )
 
-                // Search
+                // Search — Figma `mm_media_search` custom artwork.
                 Button(action: onSearchTap) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 20, weight: .regular))
+                    Image("kudos-icon-search")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
                         .foregroundColor(.white)
                 }
                 .accessibilityIdentifier("home.header.search")
 
-                // Bell with optional unread badge
+                // Bell with optional unread badge — Figma `mm_media_notification`.
                 Button(action: onBellTap) {
                     ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 20, weight: .regular))
+                        Image("kudos-icon-notification")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
                             .foregroundColor(.white)
 
                         if unreadCount > 0 {
