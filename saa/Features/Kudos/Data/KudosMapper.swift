@@ -20,36 +20,20 @@ enum KudosMapper {
 
     /// Maps `kudos_attachments` join rows to domain values.
     ///
-    /// Back-compat strategy (clarifications.md §storage-model):
-    /// When the join is nil (legacy query without the embed) or the array is empty
-    /// AND the DTO has a `photo_url`, a single synthetic attachment is produced from
-    /// the legacy field so the UI rendering path is unified across old and new records.
+    /// Migration 20260630000000 dropped `kudos.photo_url` and backfilled
+    /// every legacy URL into `kudos_attachments` as a `sort_order = 0` row,
+    /// so this mapper no longer has a photo_url fallback path.
     static func attachments(from dto: KudosDTO) -> [KudosAttachment] {
-        let rows = dto.kudos_attachments ?? []
-        if !rows.isEmpty {
-            return rows
-                .sorted { $0.sort_order < $1.sort_order }
-                .map { row in
-                    KudosAttachment(
-                        storagePath: row.storage_path,
-                        contentType: row.content_type,
-                        byteSize: row.byte_size,
-                        sortOrder: row.sort_order
-                    )
-                }
-        }
-        // Fallback: synthesise from legacy photo_url.
-        if let photoURL = dto.photo_url, !photoURL.isEmpty {
-            return [
+        (dto.kudos_attachments ?? [])
+            .sorted { $0.sort_order < $1.sort_order }
+            .map { row in
                 KudosAttachment(
-                    storagePath: photoURL,
-                    contentType: "image/jpeg",
-                    byteSize: 0,
-                    sortOrder: 0
+                    storagePath: row.storage_path,
+                    contentType: row.content_type,
+                    byteSize: row.byte_size,
+                    sortOrder: row.sort_order
                 )
-            ]
-        }
-        return []
+            }
     }
 
     // MARK: - Author helpers
@@ -91,7 +75,8 @@ enum KudosMapper {
     static func from(
         _ dto: KudosDTO,
         currentUserId: UUID?,
-        isLikedByMe: Bool
+        isLikedByMe: Bool,
+        hashtagsOverride: [Hashtag]? = nil
     ) -> Kudos {
         // Build sender — apply masking when anonymous and not self-authored.
         let sender: KudosAuthor
@@ -126,11 +111,13 @@ enum KudosMapper {
             )
         }
 
-        let hashtags = (dto.kudos_hashtags ?? []).map { HashtagMapper.from($0.hashtag) }
+        // `hashtagsOverride` is supplied by the repository when an active
+        // hashtag filter is in effect — the embedded `kudos_hashtags` join is
+        // pruned by PostgREST in that case, so the override carries the full,
+        // unpruned hashtag list fetched in a second query.
+        let hashtags = hashtagsOverride
+            ?? (dto.kudos_hashtags ?? []).map { HashtagMapper.from($0.hashtag) }
 
-        // Map kudos_attachments when present (phase-06+).
-        // Back-compat: when the join is nil or empty, synthesise a single attachment
-        // from the legacy `photo_url` field so the UI rendering path is unified.
         let attachments: [KudosAttachment] = Self.attachments(from: dto)
 
         // canLike: false when the current user is the sender (TC_FUN_008).
@@ -147,7 +134,6 @@ enum KudosMapper {
             isAnonymous: dto.is_anonymous,
             anonymousNickname: dto.anonymous_nickname,
             hashtags: hashtags,
-            photoURL: dto.photo_url.flatMap(URL.init(string:)),
             attachments: attachments,
             heartCount: dto.heartCount,
             isLikedByMe: isLikedByMe,

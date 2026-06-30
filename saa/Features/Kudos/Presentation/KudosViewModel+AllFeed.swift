@@ -13,6 +13,17 @@ extension KudosViewModel {
     /// - On failure: maps to `KudosError` and transitions to `.error(error)`.
     func loadAllFeedInitial() async {
         guard !isAllFeedFetchInFlight else { return }
+        // Idempotent: when content already loaded (or in-flight) skip. Re-entering
+        // All Kudos via a detail-pop fires `.task` again and we want existing
+        // pages + scroll position preserved. Pull-to-refresh is the explicit
+        // path for fresh data — see `refreshAllFeed()`.
+        // Allowed entry states: `.idle` (first load) and `.error` (retry after
+        // failure). All others (loaded / loadingMore / endOfList / loading)
+        // skip this loader.
+        switch allFeedLoadState {
+        case .idle, .error: break
+        default: return
+        }
 
         allFeedPage = 0
         allFeed = []

@@ -66,7 +66,6 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: Array(hashtags.prefix(3)),
-            photoURL: nil,
             attachments: [],
             heartCount: 1000,
             isLikedByMe: false,
@@ -83,7 +82,6 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: Array(hashtags.suffix(2)),
-            photoURL: nil,
             attachments: [],
             heartCount: 750,
             isLikedByMe: true,
@@ -107,7 +105,6 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             isAnonymous: true,
             anonymousNickname: "Bí Ẩn",
             hashtags: [hashtags[1]],
-            photoURL: nil,
             attachments: [],
             heartCount: 320,
             isLikedByMe: false,
@@ -192,6 +189,12 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
         UUID(uuidString: "aaaaaaaa-0000-0000-0000-000000000001")!
     }
 
+    /// Passthrough — previews don't talk to Supabase Storage, so a parsed URL
+    /// is sufficient when one can be constructed.
+    func attachmentImageURL(forStoragePath storagePath: String) async -> URL? {
+        URL(string: storagePath)
+    }
+
     func createKudo(_ request: CreateKudoRequest) async throws -> Kudos {
         // Stub: return a synthetic kudos for preview purposes.
         Kudos(
@@ -203,7 +206,6 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             isAnonymous: request.isAnonymous,
             anonymousNickname: request.anonymousNickname,
             hashtags: [],
-            photoURL: nil,
             attachments: request.attachments,
             heartCount: 0,
             isLikedByMe: false,

@@ -117,6 +117,9 @@ struct KudosReactionCountDTO: Codable, Sendable {
 /// reaction `user_id`s for the batch, then threaded into the mapper.
 /// See `SupabaseKudosRepository` for the fallback strategy when the nested
 /// aggregate proves unreliable.
+///
+/// `photo_url` was removed by migration 20260630000000 — historical values
+/// were backfilled into `kudos_attachments` (sort_order = 0).
 struct KudosDTO: Codable, Sendable {
 
     let id: UUID
@@ -126,7 +129,6 @@ struct KudosDTO: Codable, Sendable {
     let message: String
     let is_anonymous: Bool
     let anonymous_nickname: String?
-    let photo_url: String?
     let status: String
     let created_at: Date
     let deleted_at: Date?
@@ -136,8 +138,8 @@ struct KudosDTO: Codable, Sendable {
     let recipient: KudosProfileDTO?
     let kudos_hashtags: [KudosHashtagJoinDTO]?
     /// Ordered image attachments from the `kudos_attachments` join.
-    /// Nil when the join is absent from the query (legacy reads); empty when no
-    /// attachments exist. `KudosMapper` falls back to `photo_url` when nil or empty.
+    /// Nil when the join is absent from the query; empty when no attachments
+    /// exist for the kudos.
     let kudos_attachments: [KudosAttachmentDTO]?
 
     // heart_count: nested aggregate `kudos_reactions(count)`.
@@ -153,7 +155,6 @@ struct KudosDTO: Codable, Sendable {
         case message
         case is_anonymous
         case anonymous_nickname
-        case photo_url
         case status
         case created_at
         case deleted_at

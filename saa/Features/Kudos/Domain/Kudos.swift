@@ -4,19 +4,6 @@ import Foundation
 
 typealias KudosID = UUID
 
-// MARK: - KudosPhoto
-
-/// Represents a photo attached to a kudos post.
-///
-/// A kudos carries at most one photo (single `photo_url` column). The domain
-/// separates this into its own type so views can bind to it without reaching
-/// into the parent `Kudos` struct.
-struct KudosPhoto: Hashable, Sendable {
-    /// Remote URL for the image. Nil is not representable here — use `Kudos.photoURL`
-    /// optional to express absence.
-    let url: URL
-}
-
 // MARK: - KudosAuthor
 
 /// Identifies a sender or recipient on a kudos post.
@@ -66,11 +53,10 @@ struct Kudos: Identifiable, Hashable, Sendable {
     let anonymousNickname: String?
     /// Hashtag labels associated with this post, ordered as stored.
     let hashtags: [Hashtag]
-    /// Single attached photo; nil when no photo was uploaded.
-    /// Retained for back-compat with existing feed read paths (clarifications.md §storage-model).
-    let photoURL: URL?
     /// Ordered list of image attachments stored in `kudos_attachments` table.
-    /// Empty when no images were attached (pre-phase-05 records always produce `[]`).
+    /// Empty when no images were attached. Migration 20260630000000 dropped
+    /// the legacy `kudos.photo_url` column — historical photo URLs were
+    /// backfilled into `kudos_attachments` with `sort_order = 0`.
     let attachments: [KudosAttachment]
     /// Aggregate heart-reaction count across all users.
     let heartCount: Int

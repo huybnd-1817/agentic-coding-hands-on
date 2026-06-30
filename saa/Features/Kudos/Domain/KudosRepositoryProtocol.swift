@@ -105,4 +105,16 @@ protocol KudosRepositoryProtocol: Sendable {
     ///   `KudosError.notAuthenticated` when the session has expired;
     ///   `KudosError.network` on connectivity failure.
     func createKudo(_ request: CreateKudoRequest) async throws -> Kudos
+
+    /// Resolves a `KudosAttachment.storagePath` to a loadable image URL.
+    ///
+    /// The `kudos-images` bucket is **private** (migration 20260624090702), so
+    /// raw storage paths cannot be loaded by `AsyncImage` — implementations
+    /// MUST return a signed URL for bucket-relative paths. Legacy backfilled
+    /// values that already carry a full `http(s)://` URL are returned as-is.
+    ///
+    /// - Returns: A loadable URL, or nil when the resolver could not produce one
+    ///   (e.g. expired credentials, malformed path). The view should render a
+    ///   placeholder for nil entries.
+    func attachmentImageURL(forStoragePath storagePath: String) async -> URL?
 }

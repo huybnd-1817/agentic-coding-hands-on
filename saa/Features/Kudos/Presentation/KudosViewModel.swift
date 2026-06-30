@@ -162,22 +162,46 @@ final class KudosViewModel: ObservableObject {
 
     // MARK: - Filter setters
 
-    /// Selects or clears the hashtag filter. Selecting the same id twice clears it (re-tap-to-clear).
-    /// Resets carousel to card 1 per TC_FUN_005 (1-based index — see `carouselIndex` doc).
+    /// Assigns the hashtag filter to `id` (or clears it when `id == nil`).
+    ///
+    /// IDEMPOTENT — calling twice with the same id is a no-op (no extra reload).
+    /// This guards against any double-fire from SwiftUI bindings: if the
+    /// dropdown's onSelect closure happens to invoke this twice in rapid
+    /// succession with the same id, the filter still ends up assigned (not
+    /// toggled back off).
+    ///
+    /// Use `toggleHashtagFilter(_:)` for the UI's re-tap-to-clear behavior.
+    /// Resets carousel to card 1 per TC_FUN_005 (1-based — see `carouselIndex`).
     func setHashtagFilter(_ id: HashtagID?) async {
-        let next: HashtagID? = (id == selectedHashtagId) ? nil : id
-        selectedHashtagId = next
+        guard id != selectedHashtagId else { return }
+        selectedHashtagId = id
         carouselIndex = 1
         await reload()
     }
 
-    /// Selects or clears the department filter. Selecting the same id twice clears it.
-    /// Resets carousel to card 1 per TC_FUN_005.
+    /// UI toggle: tap a row to switch to it; tap the currently-selected row to
+    /// clear. Delegates to `setHashtagFilter` so the idempotent assignment
+    /// remains the single mutation path. Callers that want "tap-to-select"
+    /// (without clear-on-same-tap) should use `setHashtagFilter` directly.
+    func toggleHashtagFilter(_ id: HashtagID) async {
+        let target: HashtagID? = (id == selectedHashtagId) ? nil : id
+        await setHashtagFilter(target)
+    }
+
+    /// Assigns the department filter to `id` (or clears when nil). Idempotent —
+    /// same rationale as `setHashtagFilter(_:)`. Use `toggleDepartmentFilter`
+    /// for the UI's re-tap-to-clear behavior.
     func setDepartmentFilter(_ id: DepartmentID?) async {
-        let next: DepartmentID? = (id == selectedDepartmentId) ? nil : id
-        selectedDepartmentId = next
+        guard id != selectedDepartmentId else { return }
+        selectedDepartmentId = id
         carouselIndex = 1
         await reload()
+    }
+
+    /// UI toggle counterpart to `setDepartmentFilter(_:)`.
+    func toggleDepartmentFilter(_ id: DepartmentID) async {
+        let target: DepartmentID? = (id == selectedDepartmentId) ? nil : id
+        await setDepartmentFilter(target)
     }
 
     func onCarouselIndexChanged(_ idx: Int) {
@@ -195,6 +219,34 @@ final class KudosViewModel: ObservableObject {
 
     func presentPhoto(_ url: URL) {
         presentedPhoto = url
+    }
+
+    // MARK: - Attachment URL resolution
+
+    /// Resolves each attachment's `storagePath` to a loadable image URL via
+    /// the repository. The `kudos-images` bucket is private so signed URLs
+    /// are required — concurrent resolution keeps the latency bounded by the
+    /// slowest single signing call, not the sum.
+    ///
+    /// Returns a map keyed by the original `storagePath` so the caller can
+    /// look up resolved URLs without tracking index order. Entries with nil
+    /// resolution (signing failed, malformed path) are omitted — the view
+    /// renders a placeholder in their place.
+    func resolveAttachmentImageURLs(for attachments: [KudosAttachment]) async -> [String: URL] {
+        guard !attachments.isEmpty else { return [:] }
+        return await withTaskGroup(of: (String, URL?).self, returning: [String: URL].self) { group in
+            for attachment in attachments {
+                let path = attachment.storagePath
+                group.addTask { [repository] in
+                    (path, await repository.attachmentImageURL(forStoragePath: path))
+                }
+            }
+            var result: [String: URL] = [:]
+            for await (path, url) in group {
+                if let url { result[path] = url }
+            }
+            return result
+        }
     }
 
     func dismissPhoto() {

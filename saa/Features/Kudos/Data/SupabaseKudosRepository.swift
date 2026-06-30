@@ -29,6 +29,39 @@ final class SupabaseKudosRepository: KudosRepositoryProtocol, Sendable {
     func currentUserId() async -> UUID? {
         client.auth.currentUser?.id
     }
+
+    // MARK: - Attachment URL resolution
+
+    /// Resolves a stored attachment path to a loadable URL.
+    ///
+    /// Three input shapes are tolerated because legacy `photo_url` data was
+    /// backfilled into `kudos_attachments` with varying formats (migration
+    /// 20260630000000):
+    ///   1. Fully-qualified `http(s)://…` URL — returned as-is (legacy / CDN).
+    ///   2. Bucket-prefixed path like `kudos-images/{userId}/{file}` — the
+    ///      `kudos-images/` prefix is stripped before signing.
+    ///   3. Bucket-relative `{userId}/{file}` — signed directly.
+    ///
+    /// The `kudos-images` bucket is private; signed URLs expire in 1 hour.
+    func attachmentImageURL(forStoragePath storagePath: String) async -> URL? {
+        if let url = URL(string: storagePath),
+           let scheme = url.scheme,
+           scheme == "http" || scheme == "https" {
+            return url
+        }
+        let bucket = SupabaseStorageImageUploader.bucketName  // "kudos-images"
+        let prefix = "\(bucket)/"
+        let path = storagePath.hasPrefix(prefix)
+            ? String(storagePath.dropFirst(prefix.count))
+            : storagePath
+        do {
+            return try await client.storage
+                .from(bucket)
+                .createSignedURL(path: path, expiresIn: 3600)
+        } catch {
+            return nil
+        }
+    }
 }
 
 // MARK: - Read operations
@@ -55,7 +88,8 @@ extension SupabaseKudosRepository {
                 .execute()
                 .value
             let topDtos = Array(dtos.sorted { $0.heartCount > $1.heartCount }.prefix(5))
-            return try await mapBatch(topDtos, currentUserId: userId)
+            let override = try await hashtagsOverride(for: topDtos, filter: filter)
+            return try await mapBatch(topDtos, currentUserId: userId, hashtagsOverride: override)
         } catch {
             throw KudosErrorMapper.from(error)
         }
@@ -78,10 +112,22 @@ extension SupabaseKudosRepository {
                 .range(from: from, to: to)
                 .execute()
                 .value
-            return try await mapBatch(dtos, currentUserId: userId)
+            let override = try await hashtagsOverride(for: dtos, filter: filter)
+            return try await mapBatch(dtos, currentUserId: userId, hashtagsOverride: override)
         } catch {
             throw KudosErrorMapper.from(error)
         }
+    }
+
+    /// Builds the `hashtagsOverride` map only when a hashtag filter is active —
+    /// when there's no filter, the embedded join is complete, so we skip the
+    /// extra round-trip and let `mapBatch` use the embed.
+    private func hashtagsOverride(
+        for dtos: [KudosDTO],
+        filter: KudosFilter
+    ) async throws -> [UUID: [Hashtag]]? {
+        guard filter.hashtagId != nil, !dtos.isEmpty else { return nil }
+        return try await fullHashtags(for: dtos.map(\.id))
     }
 
     func fetchHashtags() async throws -> [Hashtag] {
@@ -387,7 +433,16 @@ private extension SupabaseKudosRepository {
 
     /// Resolves `isLikedByMe` for a batch of DTOs by fetching reaction user_ids
     /// for the batch in a single query, then maps each DTO to a `Kudos` entity.
-    func mapBatch(_ dtos: [KudosDTO], currentUserId: UUID?) async throws -> [Kudos] {
+    ///
+    /// When `hashtagsOverride` is non-nil, the mapper uses it instead of the
+    /// embedded `kudos_hashtags` array — required for hashtag-filtered fetches
+    /// where PostgREST's `!inner` + `.eq` filter prunes the embed to the single
+    /// matching hashtag (see `fullHashtags(for:)`).
+    func mapBatch(
+        _ dtos: [KudosDTO],
+        currentUserId: UUID?,
+        hashtagsOverride: [UUID: [Hashtag]]? = nil
+    ) async throws -> [Kudos] {
         guard !dtos.isEmpty else { return [] }
 
         // Resolve liked state: fetch all reactions for this batch where user = me.
@@ -409,8 +464,34 @@ private extension SupabaseKudosRepository {
             KudosMapper.from(
                 dto,
                 currentUserId: currentUserId,
-                isLikedByMe: likedKudosIds.contains(dto.id)
+                isLikedByMe: likedKudosIds.contains(dto.id),
+                hashtagsOverride: hashtagsOverride?[dto.id]
             )
         }
+    }
+
+    /// Fetches the FULL hashtag list for each of the given kudos ids in one
+    /// round-trip. Used to repair the embedded `kudos_hashtags` array when the
+    /// caller applied a hashtag filter — that filter prunes the embed to a
+    /// single matching hashtag, so the card surfaces would otherwise display
+    /// only the filtered tag. See `kudosSelectClause(for:)` for the wire-level
+    /// constraint that necessitates this second query.
+    func fullHashtags(for kudosIds: [UUID]) async throws -> [UUID: [Hashtag]] {
+        guard !kudosIds.isEmpty else { return [:] }
+        struct Row: Decodable {
+            let kudos_id: UUID
+            let hashtag: HashtagDTO
+        }
+        let rows: [Row] = (try? await client
+            .from("kudos_hashtags")
+            .select("kudos_id, hashtag:hashtags(id, tag)")
+            .in("kudos_id", values: kudosIds.map(\.uuidString))
+            .execute()
+            .value) ?? []
+        var result: [UUID: [Hashtag]] = [:]
+        for row in rows {
+            result[row.kudos_id, default: []].append(HashtagMapper.from(row.hashtag))
+        }
+        return result
     }
 }
