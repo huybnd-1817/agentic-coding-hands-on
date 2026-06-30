@@ -46,4 +46,22 @@ extension XCUIApplication {
         app.launch()
         return app
     }
+
+    /// Taps the Awards tab in the bottom navigation bar and waits for
+    /// `AwardDetailView` to mount. Returns `true` if the navigation succeeded.
+    ///
+    /// The app launches on the Home tab by default; call this helper at the start
+    /// of any test that needs to exercise the Awards tab root.
+    @discardableResult
+    func navigateToAwardsTab(timeout: TimeInterval = 5) -> Bool {
+        let awardsTabButton = descendants(matching: .any)
+            .matching(identifier: "home.nav.awards")
+            .firstMatch
+        guard awardsTabButton.waitForExistence(timeout: timeout) else { return false }
+        awardsTabButton.tap()
+        return descendants(matching: .any)
+            .matching(identifier: "award.detail.root")
+            .firstMatch
+            .waitForExistence(timeout: timeout)
+    }
 }
