@@ -1,16 +1,8 @@
 import Foundation
 
-/// Pure value types for the Kudos card UI layer. No ViewModel, no networking.
-///
-/// `KudosCardData` carries all display-ready strings and state that `KudosCard`
-/// and `KudosHighlightSection` need. Production code will map from a domain
-/// entity into this struct; mock data is co-located here via `mockList` for
-/// previews and tests.
-///
-/// Invariants:
-/// - `hashtags` is ordered as it appears in the design (red text row).
-/// - `heartCount` is raw; formatting (e.g. "1.000") is done by the view.
-/// - `isLikedByMe` controls the filled/outline heart state in `KudosCard`.
+/// Pure value types for the Kudos card UI layer. Production code maps from
+/// the Domain `Kudos` entity via `KudosCardAdapter`. `hashtags` carries the
+/// tag string without the leading `#` — the view prepends it.
 
 // MARK: - Typealias
 
@@ -20,42 +12,26 @@ typealias KudosCardID = UUID
 
 struct KudosCardData: Identifiable, Hashable {
     let id: KudosCardID
-    /// `true` when the sender chose to send anonymously — drives the
-    /// "Người gửi ẩn danh" subtitle under the sender name on every card
-    /// surface (feed, highlight carousel, All Kudos, detail). Default
-    /// `false` keeps existing call sites compiling unchanged.
+    /// Drives the "Người gửi ẩn danh" subtitle. Defaulted so existing call
+    /// sites compile unchanged.
     var senderIsAnonymous: Bool = false
-    /// Sender display name (e.g. "Huỳnh Dương Xuân...")
     let senderName: String
-    /// Sender employee code (e.g. "CECV10")
     let senderCode: String
-    /// Sender star tier (B.3.2) — derived from `KudosAuthor.kudosReceivedCount`.
     let senderStarTier: StarTier
-    /// Remote URL for sender avatar (B.3.1). When non-nil the card renders an
-    /// `AsyncImage`; falls back to the standard `person.crop.circle.fill`
-    /// SF Symbol while loading or on failure.
     let senderAvatarURL: URL?
-    /// Recipient display name (e.g. "Dương Xuân Huỳnh...")
     let recipientName: String
-    /// Recipient employee code
     let recipientCode: String
-    /// Recipient star tier (B.3.6) — derived from `KudosAuthor.kudosReceivedCount`.
     let recipientStarTier: StarTier
-    /// Remote URL for recipient avatar (B.3.5). Same fallback semantics as sender.
     let recipientAvatarURL: URL?
-    /// Pre-formatted timestamp string (e.g. "10:00 - 10/30/2025")
+    /// Pre-formatted "HH:mm - MM/dd/yyyy".
     let timestampText: String
-    /// Gold bold title displayed on the card (e.g. "IDOL GIỚI TRẺ")
     let title: String
-    /// Body text of the thank-you note
     let body: String
-    /// Ordered hashtag labels without leading '#' — view prepends '#'.
+    /// No leading `#` — view prepends it.
     let hashtags: [String]
-    /// Raw heart reaction count
     let heartCount: Int
-    /// Whether the current user has liked this kudo
     var isLikedByMe: Bool
-    /// False when the current user is the sender — disables heart per TC_FUN_008.
+    /// False when the current user is the sender (TC_FUN_008).
     let canLike: Bool
 }
 

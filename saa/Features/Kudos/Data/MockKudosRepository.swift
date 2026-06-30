@@ -3,12 +3,8 @@ import Foundation
 
 // MARK: - MockKudosRepository
 
-/// In-memory stub implementation of `KudosRepositoryProtocol` for SwiftUI previews
-/// and unit test doubles.
-///
-/// Uses deterministic `UUID`s so snapshot tests produce stable output.
-/// NOT wired in production — see `saaApp.swift` composition root which guards
-/// repository injection with `#if DEBUG`.
+/// In-memory stub for previews/tests. Deterministic UUIDs → stable snapshots.
+/// Never wired in production (`#if DEBUG`-guarded in `saaApp.swift`).
 final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
 
     // MARK: - Fixtures
@@ -66,7 +62,18 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: Array(hashtags.prefix(3)),
-            attachments: [],
+            // One legacy-shaped attachment so the detail-screen gallery has
+            // something to render under previews / UI-tests. The HTTPS path
+            // takes the `directHTTPURL` fast path in ViewKudoDetailView and
+            // never hits the signed-URL resolver — keeps tests offline-safe.
+            attachments: [
+                KudosAttachment(
+                    storagePath: "https://via.placeholder.com/100",
+                    contentType: "image/jpeg",
+                    byteSize: 1,
+                    sortOrder: 0
+                )
+            ],
             heartCount: 1000,
             isLikedByMe: false,
             canLike: true,
@@ -146,10 +153,7 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
         )
     }
 
-    func fetchTopGiftRecipients(limit: Int) async throws -> [KudosAuthor] {
-        // Out of scope: replaced when reward_recipients table lands (see plan deferred).
-        return []
-    }
+    func fetchTopGiftRecipients(limit: Int) async throws -> [KudosAuthor] { [] }
 
     func fetchEligibleRecipients() async throws -> [ProfileSummary] {
         [
@@ -171,7 +175,6 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
     }
 
     func fetchActiveEventBonus(now: Date) async throws -> EventBonus? {
-        // Return a mock active bonus for preview purposes.
         EventBonus(
             id: UUID(uuidString: "ffffffff-0000-0000-0000-000000000001")!,
             startsAt: Date(timeIntervalSince1970: 0),
@@ -189,14 +192,12 @@ final class MockKudosRepository: KudosRepositoryProtocol, Sendable {
         UUID(uuidString: "aaaaaaaa-0000-0000-0000-000000000001")!
     }
 
-    /// Passthrough — previews don't talk to Supabase Storage, so a parsed URL
-    /// is sufficient when one can be constructed.
+    /// Passthrough — previews don't talk to Supabase Storage.
     func attachmentImageURL(forStoragePath storagePath: String) async -> URL? {
         URL(string: storagePath)
     }
 
     func createKudo(_ request: CreateKudoRequest) async throws -> Kudos {
-        // Stub: return a synthetic kudos for preview purposes.
         Kudos(
             id: UUID(),
             sender: Self.senderA,

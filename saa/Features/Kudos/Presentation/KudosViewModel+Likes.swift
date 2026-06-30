@@ -4,28 +4,15 @@ import Foundation
 
 extension KudosViewModel {
 
-    /// Toggles the heart reaction on a kudos post with optimistic UI and rollback on failure.
-    ///
-    /// Optimistic path:
-    ///   1. Snapshot the prior `Kudos` value for rollback.
-    ///   2. Mutate `highlights` and `feed` in-place (flip `isLikedByMe`, adjust `heartCount`).
-    ///   3. Await `ToggleKudosReactionUseCase.execute(...)`.
-    ///   4. On success: no-op (the view already shows the correct state).
-    ///   5. On failure: restore prior values and emit `.likeFailed` toast.
-    ///
-    /// A per-kudos in-flight guard (`likeInFlight`) prevents concurrent double-taps on the
-    /// same card from sending duplicate network requests.
+    /// Optimistic toggle with rollback on failure. Per-kudos in-flight guard
+    /// blocks duplicate network calls from concurrent double-taps.
     func toggleLike(_ id: KudosID) async {
         guard !likeInFlight.contains(id) else { return }
-
-        // Find current kudos in either array.
-        guard let prior = findKudos(id: id) else { return }
-        guard prior.canLike else { return }
+        guard let prior = findKudos(id: id), prior.canLike else { return }
 
         likeInFlight.insert(id)
         defer { likeInFlight.remove(id) }
 
-        // Optimistic update — flip state immediately.
         let optimisticLiked = !prior.isLikedByMe
         let delta = optimisticLiked ? 1 : -1
         updateKudos(id: id, isLikedByMe: optimisticLiked, heartCountDelta: delta)
@@ -35,14 +22,8 @@ extension KudosViewModel {
                 kudosId: id,
                 currentlyLiked: prior.isLikedByMe
             )
-            // Server confirmed — nothing more to do; UI already reflects the new state.
         } catch {
-            // Rollback to prior values.
-            updateKudos(
-                id: id,
-                isLikedByMe: prior.isLikedByMe,
-                heartCountDelta: -delta
-            )
+            updateKudos(id: id, isLikedByMe: prior.isLikedByMe, heartCountDelta: -delta)
             emitToast(.likeFailed)
         }
     }
@@ -59,31 +40,21 @@ extension KudosViewModel {
     /// Mutates `isLikedByMe` and adjusts `heartCount` by `heartCountDelta` for the
     /// kudos matching `id` in `highlights`, `feed`, and `allFeed`.
     ///
-    /// Swift structs are value types; we must replace the element in the array.
-    /// Using `map` keeps the array-level assignment on MainActor where it belongs.
-    /// `allFeed` is also walked so a like toggle on the All Kudos screen propagates
+    /// `allFeed` is walked so a like toggle on the All Kudos screen propagates
     /// to the Kudos tab preview and vice-versa (clarifications.md §like-state-sync).
     func updateKudos(id: KudosID, isLikedByMe: Bool, heartCountDelta: Int) {
-        highlights = highlights.map { kudos in
+        func patch(_ kudos: Kudos) -> Kudos {
             guard kudos.id == id else { return kudos }
             return patched(kudos, isLikedByMe: isLikedByMe, heartCountDelta: heartCountDelta)
         }
-        feed = feed.map { kudos in
-            guard kudos.id == id else { return kudos }
-            return patched(kudos, isLikedByMe: isLikedByMe, heartCountDelta: heartCountDelta)
-        }
-        // Added: mirror mutation into allFeed for cross-screen like-state sync.
-        allFeed = allFeed.map { kudos in
-            guard kudos.id == id else { return kudos }
-            return patched(kudos, isLikedByMe: isLikedByMe, heartCountDelta: heartCountDelta)
-        }
+        highlights = highlights.map(patch)
+        feed = feed.map(patch)
+        allFeed = allFeed.map(patch)
     }
 
     // MARK: - Private
 
-    /// Creates a copy of `kudos` with updated `isLikedByMe` and adjusted `heartCount`.
-    ///
-    /// `Kudos` is a struct with `let` fields (all immutable). We must reconstruct it.
+    /// Reconstructs `Kudos` (all-let struct) with updated like fields.
     private func patched(_ kudos: Kudos, isLikedByMe: Bool, heartCountDelta: Int) -> Kudos {
         Kudos(
             id: kudos.id,

@@ -2,27 +2,16 @@ import Foundation
 
 // MARK: - KudosMapper
 
-/// Lifts a `KudosDTO` (Data) into a `Kudos` (Domain), applying anonymous
-/// sender masking when the current user is not the sender.
-///
-/// Anonymous masking rule (clarifications.md, phase-06 lines 66-78):
-/// When `is_anonymous == true` AND `sender_id != currentUserId`, strip all
-/// sender identity fields: `userId = nil`, `displayName = anonymous_nickname ?? "Ẩn danh"`,
-/// `employeeCode = nil`, `avatarURL = nil`, `departmentId = nil`.
-/// The raw fallback `"Ẩn danh"` is a placeholder; the view layer should
-/// replace it with a `LocalizedStringKey` resolution for i18n.
-///
-/// This is the ONLY place anonymous masking is applied — never in Domain,
-/// never in the repository itself.
+/// Lifts `KudosDTO` → `Kudos`. Anonymous sender masking is applied here ONLY
+/// (never in Domain or repository). When `is_anonymous` and the viewer is
+/// not the sender, all sender identity fields are stripped; the raw "Ẩn danh"
+/// fallback is a placeholder for the view layer's i18n resolution.
 enum KudosMapper {
 
     // MARK: - Attachment mapping
 
-    /// Maps `kudos_attachments` join rows to domain values.
-    ///
-    /// Migration 20260630000000 dropped `kudos.photo_url` and backfilled
-    /// every legacy URL into `kudos_attachments` as a `sort_order = 0` row,
-    /// so this mapper no longer has a photo_url fallback path.
+    /// Maps `kudos_attachments` join rows. Migration 20260630000000 dropped
+    /// `kudos.photo_url` and backfilled into this table.
     static func attachments(from dto: KudosDTO) -> [KudosAttachment] {
         (dto.kudos_attachments ?? [])
             .sorted { $0.sort_order < $1.sort_order }
@@ -62,54 +51,49 @@ enum KudosMapper {
         )
     }
 
+    /// Fallback author used when a profile join row is missing.
+    /// `userId` is preserved when known so callers can still navigate; identity
+    /// fields are nil/empty so the view renders a placeholder.
+    private static func fallbackAuthor(userId: UUID?, displayName: String) -> KudosAuthor {
+        KudosAuthor(
+            userId: userId,
+            displayName: displayName,
+            employeeCode: nil,
+            avatarURL: nil,
+            departmentId: nil,
+            kudosReceivedCount: 0
+        )
+    }
+
+    /// Resolves the sender author with anonymous masking applied.
+    /// Returns the anonymised author when the kudos is anonymous and the viewer
+    /// is not the sender; otherwise the joined profile, falling back to a
+    /// placeholder when the join row is missing.
+    private static func senderAuthor(from dto: KudosDTO, currentUserId: UUID?) -> KudosAuthor {
+        if dto.is_anonymous, dto.sender_id != currentUserId {
+            return anonymousAuthor(nickname: dto.anonymous_nickname)
+        }
+        if let profile = dto.sender {
+            return author(from: profile)
+        }
+        return fallbackAuthor(userId: dto.sender_id, displayName: dto.anonymous_nickname ?? "Ẩn danh")
+    }
+
     // MARK: - Primary mapping
 
-    /// Maps a `KudosDTO` to a `Kudos` domain entity.
-    ///
-    /// - Parameters:
-    ///   - dto: The raw DTO decoded from Supabase.
-    ///   - currentUserId: The authenticated user's UUID. Nil when unauthenticated
-    ///     (fallback: treat all anonymous kudos as masked).
-    ///   - isLikedByMe: Whether the current user has reacted — resolved by the
-    ///     repository after fetching reaction user_ids for the batch.
+    /// - `currentUserId` nil → unauthenticated → all anonymous kudos are masked.
+    /// - `isLikedByMe` is resolved by the repository for the whole batch.
     static func from(
         _ dto: KudosDTO,
         currentUserId: UUID?,
         isLikedByMe: Bool,
         hashtagsOverride: [Hashtag]? = nil
     ) -> Kudos {
-        // Build sender — apply masking when anonymous and not self-authored.
-        let sender: KudosAuthor
-        if dto.is_anonymous, dto.sender_id != currentUserId {
-            sender = anonymousAuthor(nickname: dto.anonymous_nickname)
-        } else if let profile = dto.sender {
-            sender = author(from: profile)
-        } else {
-            // Sender profile missing from join — degrade gracefully.
-            sender = KudosAuthor(
-                userId: dto.sender_id,
-                displayName: dto.anonymous_nickname ?? "Ẩn danh",
-                employeeCode: nil,
-                avatarURL: nil,
-                departmentId: nil,
-                kudosReceivedCount: 0
-            )
-        }
+        let sender = senderAuthor(from: dto, currentUserId: currentUserId)
 
-        // Build recipient — always fully visible.
-        let recipient: KudosAuthor
-        if let profile = dto.recipient {
-            recipient = author(from: profile)
-        } else {
-            recipient = KudosAuthor(
-                userId: dto.recipient_id,
-                displayName: "",
-                employeeCode: nil,
-                avatarURL: nil,
-                departmentId: nil,
-                kudosReceivedCount: 0
-            )
-        }
+        // Recipient is always fully visible; degrade gracefully when join missing.
+        let recipient = dto.recipient.map(author(from:))
+            ?? fallbackAuthor(userId: dto.recipient_id, displayName: "")
 
         // `hashtagsOverride` is supplied by the repository when an active
         // hashtag filter is in effect — the embedded `kudos_hashtags` join is
@@ -117,8 +101,6 @@ enum KudosMapper {
         // unpruned hashtag list fetched in a second query.
         let hashtags = hashtagsOverride
             ?? (dto.kudos_hashtags ?? []).map { HashtagMapper.from($0.hashtag) }
-
-        let attachments: [KudosAttachment] = Self.attachments(from: dto)
 
         // canLike: false when the current user is the sender (TC_FUN_008).
         // RLS also enforces this server-side; this flag prevents the UI from
@@ -134,7 +116,7 @@ enum KudosMapper {
             isAnonymous: dto.is_anonymous,
             anonymousNickname: dto.anonymous_nickname,
             hashtags: hashtags,
-            attachments: attachments,
+            attachments: attachments(from: dto),
             heartCount: dto.heartCount,
             isLikedByMe: isLikedByMe,
             canLike: canLike,

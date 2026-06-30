@@ -2,12 +2,9 @@ import Foundation
 
 // MARK: - KudosProfileUserStatsDTO
 
-/// Nested DTO for the `user_stats` sub-join inside `KudosProfileDTO`.
-///
-/// PostgREST returns an embedded resource as a JSON **object** (not a scalar),
-/// so `kudos_received_count:user_stats(kudos_received_count)` produces
-/// `{ "user_stats": { "kudos_received_count": 25 } }` — not the scalar `25`.
-/// Decoding directly as `Int?` causes a `DecodingError.typeMismatch` at runtime.
+/// Nested `user_stats` sub-join. PostgREST returns embeds as JSON objects
+/// (not scalars), so decoding `user_stats(kudos_received_count)` directly as
+/// `Int?` raises `DecodingError.typeMismatch` at runtime.
 struct KudosProfileUserStatsDTO: Codable, Sendable {
 
     let kudos_received_count: Int?
@@ -19,13 +16,9 @@ struct KudosProfileUserStatsDTO: Codable, Sendable {
 
 // MARK: - KudosProfileDTO
 
-/// Nested join shape for a profile row embedded inside a kudos query.
-///
-/// Columns sourced from `public.profiles` (migration 20260610145900) plus
-/// the `department_id` FK added by migration 20260619104601.
-/// The `user_stats` sub-join carries `kudos_received_count` so `KudosMapper`
-/// can derive `StarTier` without a second fetch.
-/// Use `kudosReceivedCount` computed property rather than accessing `user_stats` directly.
+/// Profile row embedded inside a kudos query. `user_stats` sub-join carries
+/// `kudos_received_count` so `KudosMapper` derives `StarTier` without a
+/// second fetch. Use `kudosReceivedCount` rather than accessing `user_stats`.
 struct KudosProfileDTO: Codable, Sendable {
 
     let id: UUID
@@ -53,11 +46,8 @@ struct KudosProfileDTO: Codable, Sendable {
 
 // MARK: - KudosAttachmentDTO
 
-/// Join shape for `kudos_attachments(*)` nested select.
-///
-/// Rows are returned in `sort_order` ascending when the query includes
-/// `.order("sort_order", on: "kudos_attachments")`, which is the default
-/// for `kudosSelectClause` in `SupabaseKudosRepository`.
+/// Join shape for `kudos_attachments(*)`. Rows returned in `sort_order` asc
+/// per `kudosSelectClause` in `SupabaseKudosRepository`.
 struct KudosAttachmentDTO: Codable, Sendable {
 
     let id: UUID
@@ -89,10 +79,8 @@ struct KudosHashtagJoinDTO: Codable, Sendable {
 
 // MARK: - KudosReactionCountDTO
 
-/// Aggregate shape returned when selecting `kudos_reactions(count)`.
-///
-/// Supabase PostgREST returns `[{"count": N}]` for an aggregate nested select;
-/// we decode the first element's count as the `heartCount`.
+/// Aggregate shape for `kudos_reactions(count)` — PostgREST returns
+/// `[{"count": N}]`; we take `.first?.count`.
 struct KudosReactionCountDTO: Codable, Sendable {
 
     let count: Int
@@ -104,22 +92,10 @@ struct KudosReactionCountDTO: Codable, Sendable {
 
 // MARK: - KudosDTO
 
-/// Wire-format mirror of the `public.kudos` Postgres row plus its standard joins.
-///
-/// Column names match the migration `20260619104603_create_kudos_table.sql`.
-/// Joined relations follow the Supabase nested-select naming convention:
-///   - `sender`    → `profiles!sender_id(*)`
-///   - `recipient` → `profiles!recipient_id(*)`
-///   - `kudos_hashtags` → `kudos_hashtags(hashtag:hashtags(*))`
-///   - `reactions` → `kudos_reactions(count)` for heart_count aggregate
-///
-/// `liked_by_me` is resolved client-side in the repository after fetching all
-/// reaction `user_id`s for the batch, then threaded into the mapper.
-/// See `SupabaseKudosRepository` for the fallback strategy when the nested
-/// aggregate proves unreliable.
-///
-/// `photo_url` was removed by migration 20260630000000 — historical values
-/// were backfilled into `kudos_attachments` (sort_order = 0).
+/// Wire format for `public.kudos` + joins (sender/recipient profiles,
+/// `kudos_hashtags`, `kudos_attachments`, `reactions` aggregate). `liked_by_me`
+/// is resolved client-side per batch by the repository. `photo_url` was
+/// dropped (migration 20260630000000) and backfilled into `kudos_attachments`.
 struct KudosDTO: Codable, Sendable {
 
     let id: UUID
@@ -133,18 +109,14 @@ struct KudosDTO: Codable, Sendable {
     let created_at: Date
     let deleted_at: Date?
 
-    // Joined relations (may be nil if select alias doesn't match or join is absent)
+    // Joined relations (nil when select alias mismatches or join absent).
     let sender: KudosProfileDTO?
     let recipient: KudosProfileDTO?
     let kudos_hashtags: [KudosHashtagJoinDTO]?
-    /// Ordered image attachments from the `kudos_attachments` join.
-    /// Nil when the join is absent from the query; empty when no attachments
-    /// exist for the kudos.
+    /// Nil when join absent; empty when no attachments exist for the kudos.
     let kudos_attachments: [KudosAttachmentDTO]?
 
-    // heart_count: nested aggregate `kudos_reactions(count)`.
-    // Supabase returns this as an array with one element; we take `.first?.count`.
-    // If nil (e.g. aggregate quirk), the repository falls back to a separate count query.
+    /// Nested aggregate. Repository falls back to a separate count query if nil.
     let reactions: [KudosReactionCountDTO]?
 
     enum CodingKeys: String, CodingKey {
@@ -165,8 +137,6 @@ struct KudosDTO: Codable, Sendable {
         case reactions
     }
 
-    /// Convenience accessor: total heart count from the nested aggregate.
-    /// Returns 0 when the aggregate array is absent — the repository should
-    /// treat 0 as a signal to apply the client-side fallback.
+    /// Total heart count from the nested aggregate; 0 signals fallback needed.
     var heartCount: Int { reactions?.first?.count ?? 0 }
 }

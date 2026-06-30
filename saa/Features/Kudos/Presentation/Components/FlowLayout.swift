@@ -3,12 +3,7 @@ import SwiftUI
 // MARK: - FlowLayout (simple wrapping HStack)
 
 /// Wraps children into multiple rows when they exceed available width.
-///
-/// Used by hashtag rows on `KudosCard` (Kudos tab feed + highlight carousel +
-/// All Kudos) and `ViewKudoDetailView` so every kudos surface renders the
-/// full hashtag list without truncation. Originally lived `private` inside
-/// `CreateKudoHashtagField.swift`; promoted here so the kudos card surfaces
-/// can share one implementation (DRY).
+/// Shared by every kudos hashtag row (card surfaces + detail screen + create form).
 struct FlowLayout: Layout {
     var spacing: CGFloat = 4
 
