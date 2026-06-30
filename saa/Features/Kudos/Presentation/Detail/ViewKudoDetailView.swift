@@ -13,32 +13,19 @@ private extension Color {
 
 // MARK: - ViewKudoDetailView
 
-/// Detail screen for a single kudo post (MoMorph `[iOS] Sun*Kudos_View kudo` — screen `T0TR16k0vH`).
-///
-/// Layout (top → bottom):
-///   1. Hero background — `kudos-hero-bg-group` key-visual.
-///   2. Custom navigation bar — back chevron + centred "Kudo" title.
-///   3. Scrollable card (B.3 / B.4): trao-nhận row · gold divider · content · divider · action bar.
-///   4. `HomeBottomNavBar` (Kudos tab highlighted).
-///
-/// All data and callbacks injected as props; no ViewModel held here.
+/// Detail screen for a single kudo (MoMorph screen `T0TR16k0vH`).
+/// Pure presentation — all data and callbacks injected as props.
 @MainActor
 struct ViewKudoDetailView: View {
 
     // MARK: - Inputs
 
     let kudos: Kudos
-    /// Department lookup by id — used to resolve the `code` label shown under
-    /// each avatar to the author's department code (e.g. `"CEV1"`), matching
-    /// the resolution used by `KudosCard` on the Kudos tab and All Kudos
-    /// feed. Default `[:]` keeps `#Preview` blocks simple; production callers
-    /// thread `KudosViewModel.departments` through.
+    /// Department code lookup (matches `KudosCard`'s resolution). Default
+    /// keeps previews simple; production threads `KudosViewModel.departments`.
     var departments: [UUID: Department] = [:]
-    /// Maps each attachment's `storagePath` to a loadable URL (signed for the
-    /// private `kudos-images` bucket). Populated asynchronously by the
-    /// destination container — empty during the initial render, then refreshed
-    /// once the signing round-trip completes. Falls back to a placeholder
-    /// thumbnail when the entry for a given path is missing.
+    /// `storagePath` → signed URL map (the `kudos-images` bucket is private).
+    /// Empty during initial render, refreshed once signing completes.
     var resolvedImageURLs: [String: URL] = [:]
 
     // MARK: - Outputs
@@ -64,11 +51,8 @@ struct ViewKudoDetailView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 24)
                 }
-                // Identifier lives on the ScrollView (not the outer ZStack)
-                // so SwiftUI's identifier-propagation does NOT shadow the
-                // back chevron's own `kudos.detail.back` identifier. The
-                // ScrollView is unique to this screen, so `kudos.detail.root`
-                // is still a reliable "screen mounted" anchor for UI tests.
+                // Identifier on ScrollView (not outer ZStack) so SwiftUI's
+                // identifier-propagation does not shadow `kudos.detail.back`.
                 .accessibilityIdentifier("kudos.detail.root")
                 HomeBottomNavBar(selectedTab: .kudos, onTabTap: { _ in })
             }
@@ -152,7 +136,9 @@ extension ViewKudoDetailView {
                 subtitle: kudos.isAnonymous
                     ? LocalizedStringKey("kudos.anonymousSender.label")
                     : nil
-            ).onTapGesture { onSenderTap() }
+            )
+            .onTapGesture { onSenderTap() }
+            .accessibilityIdentifier("kudos.detail.sender.button")
             Spacer(minLength: 0)
             directionArrow
             Spacer(minLength: 0)
@@ -161,14 +147,14 @@ extension ViewKudoDetailView {
                 code: KudosCardAdapter.codeLabel(for: kudos.recipient, departments: departments),
                 starTier: StarTier.from(received: kudos.recipient.kudosReceivedCount),
                 avatarURL: kudos.recipient.avatarURL
-            ).onTapGesture { onRecipientTap() }
+            )
+            .onTapGesture { onRecipientTap() }
+            .accessibilityIdentifier("kudos.detail.recipient.button")
         }
         .frame(maxWidth: .infinity).frame(height: 62)
     }
 
-    /// Mirrors `KudosCard.directionArrow` — prefers the bespoke
-    /// `kudos-card-direction-arrow` asset and falls back to the system
-    /// SF Symbol when the asset is missing (preview / asset catalog gap).
+    /// Mirrors `KudosCard.directionArrow` — bespoke asset with SF Symbol fallback.
     var directionArrow: some View {
         Group {
             if UIImage(named: "kudos-card-direction-arrow") != nil {
@@ -217,15 +203,9 @@ extension ViewKudoDetailView {
             .clipShape(RoundedRectangle(cornerRadius: 5.554))
     }
 
-    // F.2 — horizontal thumbnail gallery, 32×32pt per image.
-    //
-    // Two render paths:
-    //   1. Fast path — when `storagePath` is already a fully-qualified
-    //      `http(s)://` URL (legacy `photo_url` data backfilled by migration
-    //      20260630000000), render it immediately. No async hop, no flicker.
-    //   2. Resolved path — bucket-relative paths require a signed URL from
-    //      the repository (the `kudos-images` bucket is private). The
-    //      destination container populates `resolvedImageURLs` asynchronously.
+    // F.2 — horizontal thumbnail gallery, 32x32pt per image. Two render paths:
+    // legacy HTTPS URLs render immediately; bucket-relative paths require a
+    // signed URL via `resolvedImageURLs` (populated asynchronously).
     var imageGallery: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
@@ -238,27 +218,22 @@ extension ViewKudoDetailView {
                         .frame(width: 32, height: 32)
                         .clipShape(RoundedRectangle(cornerRadius: 1.787))
                         .overlay(RoundedRectangle(cornerRadius: 1.787).stroke(Color.detailGold, lineWidth: 0.447))
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("kudos.detail.gallery.image.\(idx)")
                 }
             }
         }
     }
 
-    /// Returns a loadable URL for the given attachment. Prefers the pre-resolved
-    /// signed URL when available; falls back to a synchronous parse of
-    /// `storagePath` when it is already a fully-qualified HTTP(S) URL.
+    /// Prefers a resolved signed URL; falls back to direct HTTPS parse.
     func imageURL(for attachment: KudosAttachment) -> URL? {
-        if let resolved = resolvedImageURLs[attachment.storagePath] {
-            return resolved
-        }
-        return Self.directHTTPURL(from: attachment.storagePath)
+        resolvedImageURLs[attachment.storagePath]
+            ?? Self.directHTTPURL(from: attachment.storagePath)
     }
 
-    /// Parses `storagePath` as a fully-qualified HTTP(S) URL when possible,
-    /// otherwise returns nil (the caller is then expected to wait for the
-    /// async signed-URL resolver). Extracted as `static nonisolated` so
-    /// unit tests can exercise the short-circuit without instantiating the
-    /// View — the parse touches no UI state.
+    /// `static nonisolated` so unit tests can call without instantiating the
+    /// View — parse touches no UI state.
     nonisolated static func directHTTPURL(from storagePath: String) -> URL? {
         guard let url = URL(string: storagePath),
               let scheme = url.scheme?.lowercased(),
@@ -267,10 +242,7 @@ extension ViewKudoDetailView {
         return url
     }
 
-    // B.4.3 — full hashtag list, wraps onto multiple rows via the shared
-    // `FlowLayout` so long lists render exactly like the Figma instead of
-    // clipping at the card's right edge. Card and detail share the same row
-    // shape (FlowLayout + spacing 4 + tracking 0.231).
+    // B.4.3 — wraps via shared `FlowLayout`; same shape as `KudosCard`.
     var hashtagRow: some View {
         FlowLayout(spacing: 4) {
             ForEach(kudos.hashtags, id: \.id) { hashtag in

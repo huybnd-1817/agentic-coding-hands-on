@@ -2,14 +2,8 @@ import SwiftUI
 
 // MARK: - ImageLightboxView
 
-/// Fullscreen pager for kudo attachment images.
-///
-/// `TabView(selection:)` with `.page` style for swipe-between behaviour;
-/// close button (top-right X) calls `onDismiss`. Pure presentation — no
-/// pinch-to-zoom (deferred per clarifications), no caching beyond `AsyncImage`.
-///
-/// Designed for use as a `.fullScreenCover` content view. Owns its own
-/// selection state so the caller only needs to thread the initial index.
+/// Fullscreen pager for kudo attachment images. `.fullScreenCover` content.
+/// No pinch-to-zoom (deferred); no caching beyond `AsyncImage`.
 @MainActor
 struct ImageLightboxView: View {
 
@@ -29,7 +23,7 @@ struct ImageLightboxView: View {
         self.imageURLs = imageURLs
         self.initialIndex = initialIndex
         self.onDismiss = onDismiss
-        // Clamp into bounds defensively so an out-of-range index won't crash TabView.
+        // Defensive clamp — out-of-range indexes would crash TabView.
         let clamped = max(0, min(initialIndex, max(imageURLs.count - 1, 0)))
         _currentIndex = State(initialValue: clamped)
     }
@@ -49,10 +43,14 @@ struct ImageLightboxView: View {
             .tabViewStyle(.page(indexDisplayMode: imageURLs.count > 1 ? .automatic : .never))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
             .ignoresSafeArea()
+            // Identifier on the TabView (NOT outer ZStack) so SwiftUI's
+            // identifier-propagation does NOT shadow `kudos.detail.lightbox.close`
+            // on the sibling close button. Same shadowing fix applied to
+            // ViewKudoDetailView and KudosAuthorProfileStubView.
+            .accessibilityIdentifier("kudos.detail.lightbox.root")
 
             closeButton
         }
-        .accessibilityIdentifier("kudos.detail.lightbox")
     }
 
     // MARK: - Subviews

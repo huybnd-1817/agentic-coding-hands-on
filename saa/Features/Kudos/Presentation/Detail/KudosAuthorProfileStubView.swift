@@ -12,12 +12,9 @@ private extension Color {
 
 // MARK: - KudosAuthorProfileStubView
 
-/// Lightweight placeholder pushed when sender/recipient is tapped on the
-/// detail screen. Renders the `KudosAuthor` already in memory — no fetch,
-/// no use case, no repository.
-///
-/// Marks the future hook point for a real profile feature; for now shows
-/// avatar + display name + employee code + star tier + "coming soon" footer.
+/// Placeholder pushed on sender/recipient tap from the detail screen.
+/// Renders the in-memory `KudosAuthor` — no fetch / use-case / repository.
+/// Hook point for the real profile feature.
 @MainActor
 struct KudosAuthorProfileStubView: View {
 
@@ -39,10 +36,13 @@ struct KudosAuthorProfileStubView: View {
                         .padding(.top, 32)
                         .padding(.bottom, 24)
                 }
+                // Identifier on ScrollView (not outer ZStack) so SwiftUI's
+                // identifier-propagation does NOT shadow `kudos.detail.profile.back`.
+                // Mirrors the fix applied to ViewKudoDetailView.
+                .accessibilityIdentifier("kudos.detail.profile.root")
             }
         }
         .ignoresSafeArea(edges: .top)
-        .accessibilityIdentifier("kudos.detail.profile.root")
     }
 
     // MARK: - Background
