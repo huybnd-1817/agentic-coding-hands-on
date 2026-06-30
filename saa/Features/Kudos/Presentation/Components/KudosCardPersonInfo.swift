@@ -17,6 +17,10 @@ struct KudosCardPersonInfo: View {
     /// Remote avatar URL. When non-nil rendered via `AsyncImage`; otherwise
     /// falls back to a standard SF Symbol (`person.crop.circle.fill`).
     let avatarURL: URL?
+    /// Optional subtitle rendered in place of the `code + star` row (used by
+    /// the detail screen's anonymous-sender layout to show "Người gửi ẩn danh"
+    /// below the nickname). When nil, the original `code + star` row renders.
+    var subtitle: LocalizedStringKey? = nil
 
     // MARK: - Body
 
@@ -77,18 +81,25 @@ struct KudosCardPersonInfo: View {
                 .foregroundColor(Color.kudosPersonText)
                 .lineLimit(1)
 
-            HStack(spacing: 4) {
-                Text(code)
-                    .font(.custom("Montserrat-Medium", size: 10))
+            if let subtitle {
+                Text(subtitle)
+                    .font(.custom("Montserrat-Regular", size: 10))
                     .foregroundColor(Color.kudosPersonSubtext)
                     .lineLimit(1)
+            } else {
+                HStack(spacing: 4) {
+                    Text(code)
+                        .font(.custom("Montserrat-Medium", size: 10))
+                        .foregroundColor(Color.kudosPersonSubtext)
+                        .lineLimit(1)
 
-                if starTier != .zero {
-                    Circle()
-                        .fill(Color.kudosPersonSubtext.opacity(0.4))
-                        .frame(width: 2, height: 2)
+                    if starTier != .zero {
+                        Circle()
+                            .fill(Color.kudosPersonSubtext.opacity(0.4))
+                            .frame(width: 2, height: 2)
 
-                    KudosStarBadge(tier: starTier)
+                        KudosStarBadge(tier: starTier)
+                    }
                 }
             }
         }

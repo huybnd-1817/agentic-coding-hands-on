@@ -62,6 +62,9 @@ struct KudosCard: View {
             personInfo(
                 name: data.senderName, code: data.senderCode,
                 starTier: data.senderStarTier, avatarURL: data.senderAvatarURL,
+                subtitle: data.senderIsAnonymous
+                    ? LocalizedStringKey("kudos.anonymousSender.label")
+                    : nil,
                 onTap: onSenderTap
             )
             Spacer(minLength: 0)
@@ -70,6 +73,7 @@ struct KudosCard: View {
             personInfo(
                 name: data.recipientName, code: data.recipientCode,
                 starTier: data.recipientStarTier, avatarURL: data.recipientAvatarURL,
+                subtitle: nil,
                 onTap: onRecipientTap
             )
         }
@@ -78,16 +82,21 @@ struct KudosCard: View {
     }
 
     /// Tappable person-info cell — shared by the sender and recipient slots.
+    /// `subtitle`, when non-nil, replaces the `code + star` row inside
+    /// `KudosCardPersonInfo` — used by the sender slot to surface
+    /// "Người gửi ẩn danh" for anonymous kudos.
     private func personInfo(
         name: String,
         code: String,
         starTier: StarTier,
         avatarURL: URL?,
+        subtitle: LocalizedStringKey?,
         onTap: @escaping (KudosCardID) -> Void
     ) -> some View {
         KudosCardPersonInfo(
             name: name, code: code,
-            starTier: starTier, avatarURL: avatarURL
+            starTier: starTier, avatarURL: avatarURL,
+            subtitle: subtitle
         )
         .onTapGesture { onTap(data.id) }
     }
@@ -144,49 +153,26 @@ struct KudosCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 5.554))
     }
 
-    /// TC_GUI_004 / B.4.3 — single line, up to 5 tags, "…" pill when more.
-    ///
-    /// Each tag is capped at `tagMaxWidth` and individually truncated so a
-    /// single long hashtag can't swallow the row and push the overflow pill
-    /// off-screen. The overflow "…" is laid out with `.layoutPriority(1)` so
-    /// it survives even when earlier tags compete for space.
+    /// Renders the FULL hashtag list — no 5-tag cap, no overflow pill, no
+    /// per-tag width cap. Long lists wrap onto multiple rows via the shared
+    /// `FlowLayout`. Spacing 4 + tracking 0.231 mirrors `ViewKudoDetailView`
+    /// so every kudos surface (feed, highlight, All Kudos, detail) reads the
+    /// same.
     private var hashtagRow: some View {
-        HStack(spacing: 4) {
-            ForEach(visibleHashtags, id: \.self) { tag in
+        FlowLayout(spacing: 4) {
+            ForEach(data.hashtags, id: \.self) { tag in
                 Button { onHashtagTap(tag) } label: {
                     Text("#\(tag)")
                         .font(.custom("Montserrat-Regular", size: 10))
                         .foregroundColor(Color.kudosHashtagRed).tracking(0.231)
                         .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: KudosCard.tagMaxWidth, alignment: .leading)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("kudos.card.hashtag.\(tag)")
             }
-            if data.hashtags.count > KudosCard.hashtagDisplayCap {
-                Text("…")
-                    .font(.custom("Montserrat-Regular", size: 10))
-                    .foregroundColor(Color.kudosHashtagRed)
-                    .layoutPriority(1)
-                    .accessibilityIdentifier("kudos.card.hashtag.overflow")
-            }
         }
-        .frame(height: 23, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-
-    /// First N hashtags shown inline; remainder collapses behind the "…" pill.
-    private var visibleHashtags: [String] {
-        Array(data.hashtags.prefix(KudosCard.hashtagDisplayCap))
-    }
-
-    /// Per TC_GUI_004 — maximum hashtags shown on one line before "…" overflow.
-    private static let hashtagDisplayCap = 5
-
-    /// Per-tag width cap so one long hashtag (e.g. "#supercalifragilistic")
-    /// can't consume the row and push the "…" overflow off-screen.
-    private static let tagMaxWidth: CGFloat = 80
 
     // MARK: - Action row
 

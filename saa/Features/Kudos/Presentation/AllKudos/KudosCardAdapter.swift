@@ -24,6 +24,7 @@ enum KudosCardAdapter {
     static func cardData(from kudos: Kudos, departments: [UUID: Department]) -> KudosCardData {
         return KudosCardData(
             id: kudos.id,
+            senderIsAnonymous: kudos.isAnonymous,
             senderName: kudos.sender.displayName,
             senderCode: codeLabel(for: kudos.sender, departments: departments),
             senderStarTier: StarTier.from(received: kudos.sender.kudosReceivedCount),

@@ -20,6 +20,11 @@ typealias KudosCardID = UUID
 
 struct KudosCardData: Identifiable, Hashable {
     let id: KudosCardID
+    /// `true` when the sender chose to send anonymously — drives the
+    /// "Người gửi ẩn danh" subtitle under the sender name on every card
+    /// surface (feed, highlight carousel, All Kudos, detail). Default
+    /// `false` keeps existing call sites compiling unchanged.
+    var senderIsAnonymous: Bool = false
     /// Sender display name (e.g. "Huỳnh Dương Xuân...")
     let senderName: String
     /// Sender employee code (e.g. "CECV10")
