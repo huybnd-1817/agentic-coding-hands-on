@@ -66,7 +66,6 @@ final class KudosCardAdapterTests: XCTestCase {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: hashtags,
-            photoURL: nil,
             attachments: [],
             heartCount: 0,
             isLikedByMe: false,

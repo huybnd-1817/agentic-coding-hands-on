@@ -1,23 +1,15 @@
 import SwiftUI
 
-/// Scrollable feed of `KudosCard` items for the All Kudos screen.
-///
-/// Responsibilities:
-/// - Renders each card via `KudosCard(bodyLineLimit: 5)`.
-/// - Fires `onReachBottom` once per page boundary when the last card's
-///   `.onAppear` triggers (id-gated so it only fires once per last-item identity).
-/// - Shows a centered `ProgressView` below the last card while `isLoadingMore`.
-/// - Shows an empty-state label when the list is empty and not loading.
+/// All Kudos infinite-scroll list. `onReachBottom` is id-gated so it fires
+/// at most once per last-item identity.
 @MainActor
 struct AllKudosFeedList: View {
 
     // MARK: - Inputs
 
     let kudos: [KudosCardData]
-    /// True while the FIRST page is in flight (allFeedLoadState == .loading).
-    /// Distinct from `isLoadingMore`: the initial load swaps the placeholder for a
-    /// centered spinner so the empty-state copy doesn't flash before the first page
-    /// resolves.
+    /// True while the first page is in flight; distinct from `isLoadingMore`
+    /// so the empty-state copy doesn't flash before the first page resolves.
     let isInitialLoading: Bool
     let isLoadingMore: Bool
     let hasMore: Bool
@@ -31,14 +23,13 @@ struct AllKudosFeedList: View {
     let onSenderTap: (KudosCardID) -> Void
     let onRecipientTap: (KudosCardID) -> Void
     let onReachBottom: () -> Void
-    /// Awaited by SwiftUI's `.refreshable` — the pull-to-refresh spinner stays
-    /// visible until this returns.
+    /// `.refreshable` awaits this; the spinner stays until it returns.
     let onRefresh: () async -> Void
 
     // MARK: - Internal state
 
-    /// Tracks the ID of the last card we already fired `onReachBottom` for.
-    /// Prevents duplicate fires when the cell re-enters the viewport on scroll-up.
+    /// Last card id we've already fired `onReachBottom` for — prevents
+    /// duplicate fires when the cell re-enters the viewport on scroll-up.
     @State private var lastFiredBottomID: KudosCardID?
 
     // MARK: - Body
@@ -58,21 +49,16 @@ struct AllKudosFeedList: View {
                     loadingIndicator
                 }
             }
-            // Horizontal 50pt — matches Figma node "Danh sách Kudo" (6891:16170)
-            // which lays out at startX=51 / endX=324 on the 375pt artboard.
+            // Horizontal 50pt — Figma node 6891:16170 (startX=51).
             .padding(.horizontal, 50)
-            // Bottom 80pt = ~56pt visible HomeBottomNavBar content + 24pt
-            // breathing room between the last card and the tab-bar's top edge.
+            // 80pt clears HomeBottomNavBar (~56pt) + 24pt breathing room.
             .padding(.bottom, 80)
         }
         .refreshable { await onRefresh() }
     }
 
     // MARK: - Initial loading indicator
-    //
-    // Shown when the first page is in flight and `allFeed` is still empty.
-    // Replaces the empty-state copy so the user does not see "No kudos yet"
-    // during the network round-trip.
+    // Replaces the empty-state copy during the first-page fetch.
 
     private var initialLoadingIndicator: some View {
         ProgressView()

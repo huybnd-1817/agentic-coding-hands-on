@@ -46,7 +46,7 @@ final class KudosViewModelCopyLinkAndGuardsTests: XCTestCase {
             recipient: KudosAuthor(userId: UUID(), displayName: "R", employeeCode: nil, avatarURL: nil, departmentId: nil, kudosReceivedCount: 0),
             title: "T", message: "M",
             isAnonymous: false, anonymousNickname: nil,
-            hashtags: [], photoURL: nil, attachments: [],
+            hashtags: [], attachments: [],
             heartCount: heartCount, isLikedByMe: isLikedByMe, canLike: canLike,
             shareURL: shareURL, createdAt: Date(timeIntervalSince1970: 0)
         )

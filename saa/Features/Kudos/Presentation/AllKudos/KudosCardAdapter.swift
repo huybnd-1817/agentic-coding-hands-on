@@ -1,15 +1,11 @@
 import Foundation
 
-/// Pure Domain → UI mapping for `KudosCardData`. Shared by both `KudosViewContainer`
-/// (preview slice of the feed) and `AllKudosViewContainer` (paginated full feed) so
-/// the formatter, star-tier derivation, hashtag stripping, and avatar fallback logic
-/// live in exactly one place (DRY — development-rules.md).
+/// Pure Domain → UI mapping for `KudosCardData`. Shared by the Kudos tab
+/// preview slice and the All Kudos paginated feed so formatter / star-tier /
+/// hashtag-strip / avatar fallback logic lives in one place.
 enum KudosCardAdapter {
 
-    /// Shared timestamp formatter — `HH:mm - MM/dd/yyyy` in `Asia/Saigon`.
-    /// Hoisted to a static so each card render does not allocate a fresh
-    /// `DateFormatter` (one allocation per call × ~20+ cards per render cycle
-    /// was wasteful; reviewer report 260628 m2).
+    /// Static so we don't allocate a fresh `DateFormatter` per card (~20 per render).
     private static let timestampFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm - MM/dd/yyyy"
@@ -17,13 +13,11 @@ enum KudosCardAdapter {
         return formatter
     }()
 
-    /// Builds the presentation `KudosCardData` from a Domain `Kudos` entity.
-    ///
-    /// - Parameter departments: lookup keyed by department UUID — used to resolve the
-    ///   `code` label shown under each avatar via `codeLabel(for:departments:)`.
+    /// `departments` lookup is used to resolve the avatar `code` label.
     static func cardData(from kudos: Kudos, departments: [UUID: Department]) -> KudosCardData {
         return KudosCardData(
             id: kudos.id,
+            senderIsAnonymous: kudos.isAnonymous,
             senderName: kudos.sender.displayName,
             senderCode: codeLabel(for: kudos.sender, departments: departments),
             senderStarTier: StarTier.from(received: kudos.sender.kudosReceivedCount),
@@ -42,9 +36,7 @@ enum KudosCardAdapter {
         )
     }
 
-    /// Resolves the `code` slot shown under the avatar to the author's department
-    /// code (e.g. `"CEV1"`) — looked up via `departmentId`. Falls back to
-    /// `employeeCode`, then to empty so the row still lays out cleanly.
+    /// Department code (e.g. `"CEV1"`) → employee code → empty.
     static func codeLabel(for author: KudosAuthor, departments: [UUID: Department]) -> String {
         if let departmentId = author.departmentId, let department = departments[departmentId] {
             return department.code
@@ -52,9 +44,8 @@ enum KudosCardAdapter {
         return author.employeeCode ?? ""
     }
 
-    /// Deterministic local-asset fallback for author avatars until `AsyncImage`
-    /// lands in a follow-up phase. Picks by `userId` byte parity so the same
-    /// author always renders the same asset across screens.
+    /// Deterministic by `userId` byte parity so the same author always renders
+    /// the same asset across screens.
     static func avatarAsset(for author: KudosAuthor) -> String {
         guard let id = author.userId else { return "kudos-card-avatar-recipient" }
         let lastByte = id.uuid.15

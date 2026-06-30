@@ -2,14 +2,10 @@ import Foundation
 
 // MARK: - KudosRepositoryProtocol
 
-/// Contract between the Domain layer and the Data layer for all Kudos operations.
-///
-/// Implementations live in the Data layer (e.g. `SupabaseKudosRepository`).
-/// The VM depends on this protocol directly for single-operation calls;
-/// multi-step orchestration goes through a dedicated UseCase.
-///
-/// All methods throw `KudosError`; SDK-specific errors are mapped in the Data
-/// layer before surfacing here so this protocol remains free of Supabase types.
+/// Domain ↔ Data contract for Kudos. SDK-specific errors are mapped to
+/// `KudosError` in the Data layer so this protocol stays Supabase-free.
+/// VM uses this directly for single-op calls; multi-step orchestration goes
+/// through a UseCase.
 protocol KudosRepositoryProtocol: Sendable {
 
     /// Fetches the top kudos by heart count for the highlight carousel (≤5 items).
@@ -43,23 +39,11 @@ protocol KudosRepositoryProtocol: Sendable {
     /// - Throws: `KudosError.notAuthenticated` when no session exists.
     func fetchMyStats() async throws -> UserStats
 
-    /// Returns the top-`limit` kudos gift recipients ranked by kudos received.
-    ///
-    /// Out-of-scope for the current plan (D.3 — reward_recipients table not yet
-    /// provisioned). Implementations SHOULD return an empty array as a stub until
-    /// the follow-up plan provisions the table.
-    ///
-    /// - Parameter limit: Maximum number of recipients to return.
-    /// - Throws: `KudosError` on network or auth failure.
+    /// Stub — returns `[]` until the `reward_recipients` table is provisioned (D.3).
     func fetchTopGiftRecipients(limit: Int) async throws -> [KudosAuthor]
 
-    /// Returns all active profiles minus the current user for the Create Kudo recipient picker.
-    ///
-    /// Fetches `profiles` ordered by name, excludes the current authenticated user.
-    /// Results are cached in `CreateKudoViewModel` for the form lifetime.
-    ///
-    /// - Returns: Array of `ProfileSummary` sorted by display name.
-    /// - Throws: `KudosError.notAuthenticated` when no session; `KudosError.network` on failure.
+    /// Profiles for the Create Kudo recipient picker, excluding the current user.
+    /// Results cached by `CreateKudoViewModel`.
     func fetchEligibleRecipients() async throws -> [ProfileSummary]
 
     /// Returns the currently active event bonus, or nil when no bonus window is open.
@@ -88,21 +72,16 @@ protocol KudosRepositoryProtocol: Sendable {
     /// Returns the UUID of the currently authenticated user, or nil when unauthenticated.
     func currentUserId() async -> UUID?
 
-    /// Persists a new kudos post and its attachments, then returns the created entity.
-    ///
-    /// The caller is responsible for:
-    /// 1. Uploading images via `KudosImageUploaderProtocol` and populating
-    ///    `request.attachments` with the resulting `KudosAttachment` values.
-    /// 2. Passing a fully-validated `CreateKudoRequest` (via `CreateKudoValidator`).
-    ///
-    /// On success the returned `Kudos` is suitable for optimistic prepend into the
-    /// feed via `kudosViewModel.prependKudos(_:)` (clarifications.md §post-submit).
-    ///
-    /// - Parameter request: Validated create-kudo payload.
-    /// - Returns: The newly persisted `Kudos` entity.
-    /// - Throws: `KudosError.createDenied` when RLS rejects the INSERT;
-    ///   `KudosError.recipientSelfBlocked` when the server detects sender == recipient;
-    ///   `KudosError.notAuthenticated` when the session has expired;
-    ///   `KudosError.network` on connectivity failure.
+    /// Persists a kudos + attachments. Caller is responsible for uploading
+    /// images and validating the request first. Returned `Kudos` is suitable
+    /// for optimistic prepend via `kudosViewModel.prependKudos(_:)`.
+    /// - Throws: `KudosError.createDenied` (RLS), `.recipientSelfBlocked`,
+    ///   `.notAuthenticated`, `.network`.
     func createKudo(_ request: CreateKudoRequest) async throws -> Kudos
+
+    /// Resolves a storage path to a loadable URL. The `kudos-images` bucket
+    /// is private — implementations MUST return a signed URL for bucket-
+    /// relative paths; legacy fully-qualified `http(s)://` values are returned
+    /// as-is. Nil → view renders a placeholder.
+    func attachmentImageURL(forStoragePath storagePath: String) async -> URL?
 }

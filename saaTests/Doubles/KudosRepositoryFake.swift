@@ -128,6 +128,13 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
 
     var _currentUserId: UUID? = nil
 
+    // MARK: - Attachment URL resolution (configurable for testing)
+
+    /// Optional closure to customize attachment URL resolution per path.
+    /// When set, called instead of the default passthrough behavior.
+    /// Useful for testing partial failure scenarios.
+    var attachmentURLResolver: ((String) -> URL?)? = nil
+
     // MARK: - Protocol conformance
 
     func fetchHighlightKudos(filter: KudosFilter) async throws -> [Kudos] {
@@ -234,6 +241,16 @@ final class KudosRepositoryFake: KudosRepositoryProtocol, @unchecked Sendable {
     func currentUserId() async -> UUID? {
         currentUserIdCalls += 1
         return _currentUserId
+    }
+
+    /// Passthrough — tests don't talk to Supabase Storage. Returns a parsed URL
+    /// when one can be constructed from the path string, nil otherwise.
+    /// Can be customized via `attachmentURLResolver` for testing partial failure.
+    func attachmentImageURL(forStoragePath storagePath: String) async -> URL? {
+        if let resolver = attachmentURLResolver {
+            return resolver(storagePath)
+        }
+        return URL(string: storagePath)
     }
 
     func createKudo(_ request: CreateKudoRequest) async throws -> Kudos {

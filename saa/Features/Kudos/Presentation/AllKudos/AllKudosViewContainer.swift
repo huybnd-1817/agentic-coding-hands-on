@@ -2,33 +2,27 @@ import SwiftUI
 
 // MARK: - AllKudosViewContainer
 
-/// Hosts `AllKudosView` and bridges the shared `KudosViewModel` to the view's
-/// prop contract.
+/// Hosts `AllKudosView` against the shared `KudosViewModel`. `@ObservedObject`
+/// (not `@StateObject`) keeps `vm.feed` and `vm.allFeed` in sync across screens.
 ///
-/// Uses `@ObservedObject` (not `@StateObject`) because the VM is owned by the
-/// parent `KudosViewContainer` — sharing the same instance is what keeps the
-/// preview feed (`vm.feed`) and the All Kudos feed (`vm.allFeed`) in sync when
-/// a like is toggled on either screen (see `KudosViewModel+Likes.updateKudos`).
-///
-/// Lifecycle:
-///   - `.task` fires `loadAllFeedInitial()` once on appear.
-///   - `.onDisappear` calls `resetAllFeed()` so the next push starts from page 0
-///     without serving stale items.
-///   - Back navigation is delegated to the parent `KudosViewContainer` via the
-///     injected `onBack` callback (which pops the `NavigationStack` path).
-///     The project defines its own `Environment` enum that shadows SwiftUI's
-///     `@Environment` property wrapper at the module level, so the dismiss
-///     environment is unusable here without fully-qualifying every call —
-///     a callback is simpler and equally explicit.
+/// `.task` calls the idempotent `loadAllFeedInitial()` — re-appearing after a
+/// detail-pop is a no-op so scroll position survives. No `.onDisappear` reset
+/// (the user pulls to refresh for fresh data). Back nav uses the injected
+/// callback because the project's `Environment` enum shadows SwiftUI's
+/// `@Environment` property wrapper.
 struct AllKudosViewContainer: View {
 
     // MARK: - Shared ViewModel
 
     @ObservedObject var vm: KudosViewModel
 
-    // MARK: - Navigation callback (injected by KudosViewContainer)
+    // MARK: - Navigation callbacks (injected by KudosViewContainer)
 
     let onBack: () -> Void
+    /// Push detail. Card-id → Kudos resolution happens here against `vm.allFeed`.
+    let onPushDetail: (Kudos) -> Void
+    /// Parent pops to Kudos tab root and applies the matching hashtag filter.
+    let onHashtagTap: (String) -> Void
 
     // MARK: - Body
 
@@ -44,15 +38,18 @@ struct AllKudosViewContainer: View {
             onBack: onBack,
             onCardLike:       { id in Task { await vm.toggleLike(id) } },
             onCardCopyLink:   { id in vm.copyLink(id) },
-            onCardViewDetail: { _ in },
-            onHashtagTap:     { _ in },
+            onCardViewDetail: { id in
+                if let kudos = vm.allFeed.first(where: { $0.id == id }) {
+                    onPushDetail(kudos)
+                }
+            },
+            onHashtagTap:     onHashtagTap,
             onSenderTap:      { _ in },
             onRecipientTap:   { _ in },
             onReachBottom:    { Task { await vm.loadAllFeedMore() } },
             onRefresh:        { await vm.refreshAllFeed() }
         )
         .task { await vm.loadAllFeedInitial() }
-        .onDisappear { vm.resetAllFeed() }
     }
 }
 
@@ -67,7 +64,9 @@ struct AllKudosViewContainer: View {
             clipboard: UIKitKudosClipboardService(),
             repository: MockKudosRepository()
         ),
-        onBack: {}
+        onBack: {},
+        onPushDetail: { _ in },
+        onHashtagTap: { _ in }
     )
     .preferredColorScheme(.dark)
 }

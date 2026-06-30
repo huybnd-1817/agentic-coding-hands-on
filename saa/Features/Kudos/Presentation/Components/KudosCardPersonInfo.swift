@@ -1,12 +1,7 @@
 import SwiftUI
 
-/// Person info cell used inside `KudosCard`'s `trao nhận` row.
-///
-/// Matches Figma component `6885:8347` (Infor): avatar circle (24×24pt, white
-/// 0.865pt border), display name (10pt Regular, dark), employee code + star
-/// badge side by side (10pt Medium code · 2pt dot · `KudosStarBadge`).
-///
-/// The view is purely presentational — tap gesture is applied by `KudosCard`.
+/// Person info cell inside `KudosCard`'s `trao nhận` row (Figma `6885:8347`).
+/// Pure presentation — tap gesture is applied by `KudosCard`.
 struct KudosCardPersonInfo: View {
 
     // MARK: - Inputs
@@ -14,9 +9,10 @@ struct KudosCardPersonInfo: View {
     let name: String
     let code: String
     let starTier: StarTier
-    /// Remote avatar URL. When non-nil rendered via `AsyncImage`; otherwise
-    /// falls back to a standard SF Symbol (`person.crop.circle.fill`).
+    /// nil → SF Symbol placeholder.
     let avatarURL: URL?
+    /// Replaces the `code + star` row (used by anonymous-sender layout).
+    var subtitle: LocalizedStringKey? = nil
 
     // MARK: - Body
 
@@ -31,10 +27,7 @@ struct KudosCardPersonInfo: View {
 
     // MARK: - Avatar
 
-    /// Renders the avatar from `avatarURL` via `AsyncImage` when available,
-    /// falling back to a standard `person.crop.circle.fill` SF Symbol while
-    /// loading or on failure. Sizing/clipping/border match Figma B.3.1 / B.3.5
-    /// (24×24pt circle, white 0.865pt border).
+    /// `AsyncImage` when `avatarURL` is set; SF Symbol fallback otherwise.
     @ViewBuilder
     private var avatarView: some View {
         Group {
@@ -57,10 +50,7 @@ struct KudosCardPersonInfo: View {
         )
     }
 
-    /// Standard SF Symbol fallback used when no remote avatar is available
-    /// (per `--quick` directive 2026-06-23). Tinted to the card's sub-text
-    /// grey so it reads as a neutral placeholder rather than competing with
-    /// the gold/cream card palette.
+    /// Sub-text grey so it reads neutral against the gold/cream palette.
     private var placeholderImage: some View {
         Image(systemName: "person.crop.circle.fill")
             .resizable()
@@ -77,18 +67,25 @@ struct KudosCardPersonInfo: View {
                 .foregroundColor(Color.kudosPersonText)
                 .lineLimit(1)
 
-            HStack(spacing: 4) {
-                Text(code)
-                    .font(.custom("Montserrat-Medium", size: 10))
+            if let subtitle {
+                Text(subtitle)
+                    .font(.custom("Montserrat-Regular", size: 10))
                     .foregroundColor(Color.kudosPersonSubtext)
                     .lineLimit(1)
+            } else {
+                HStack(spacing: 4) {
+                    Text(code)
+                        .font(.custom("Montserrat-Medium", size: 10))
+                        .foregroundColor(Color.kudosPersonSubtext)
+                        .lineLimit(1)
 
-                if starTier != .zero {
-                    Circle()
-                        .fill(Color.kudosPersonSubtext.opacity(0.4))
-                        .frame(width: 2, height: 2)
+                    if starTier != .zero {
+                        Circle()
+                            .fill(Color.kudosPersonSubtext.opacity(0.4))
+                            .frame(width: 2, height: 2)
 
-                    KudosStarBadge(tier: starTier)
+                        KudosStarBadge(tier: starTier)
+                    }
                 }
             }
         }
@@ -97,12 +94,8 @@ struct KudosCardPersonInfo: View {
 
 // MARK: - Star badge
 
-/// Bordered pill rendering 1–3 gold ★ icons per `StarTier` (B.3.6).
-///
-/// Callers MUST guard against `.zero` and skip rendering — the badge has no
-/// "zero stars" visual state. Borders + corner radius mirror the legacy
-/// role-badge geometry (Figma `6885:8331`, 0.231pt gold, 22.217pt radius)
-/// so layout neighbours don't reflow when the badge appears.
+/// Bordered pill rendering 1–3 gold ★ icons per `StarTier` (Figma B.3.6).
+/// Callers MUST skip `.zero` — there is no zero-stars visual state.
 struct KudosStarBadge: View {
 
     let tier: StarTier
@@ -124,10 +117,8 @@ struct KudosStarBadge: View {
         .accessibilityLabel(accessibilityKey)
     }
 
-    /// Localized label per tier. `.zero` falls back to the `.one` key because
-    /// the badge should never be instantiated with `.zero` — the parent
-    /// already hides it. The fallback exists only to keep the property
-    /// total without forcing every caller to handle an optional.
+    /// `.zero` falls back to `.one` — the badge is never instantiated with
+    /// `.zero` (parent already hides it); fallback keeps the property total.
     private var accessibilityKey: LocalizedStringKey {
         switch tier {
         case .zero, .one: return "kudos.starTier.one"

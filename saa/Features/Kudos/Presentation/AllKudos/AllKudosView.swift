@@ -1,31 +1,18 @@
 import SwiftUI
 
 // MARK: - Color tokens
+// File-private copies so this file is self-contained and does not collide
+// with the private tokens in `KudosView.swift`.
 
 private extension Color {
-    /// Figma screen background — #00101A (deep navy).
-    /// File-private copy so AllKudosView.swift is self-contained and does not
-    /// conflict with the private token in KudosView.swift.
-    static let allKudosScreenBg = Color(red: 0, green: 16.0 / 255, blue: 26.0 / 255)
-
-    /// Figma gold — #FFEA9E. Used for the "ALL KUDOS" hero title.
-    static let allKudosGold = Color(red: 1.0, green: 234.0 / 255, blue: 158.0 / 255)
+    static let allKudosScreenBg = Color(red: 0, green: 16.0 / 255, blue: 26.0 / 255)  // #00101A
+    static let allKudosGold = Color(red: 1.0, green: 234.0 / 255, blue: 158.0 / 255)  // #FFEA9E
 }
 
 // MARK: - AllKudosView
 
-/// Full-screen "All Kudos" feed (MoMorph `[iOS] Sun*Kudos_All Kudos` — screen `j_a2GQWKDJ`).
-///
-/// Layout (top → bottom):
-///   1. Custom black header — back chevron + "All Kudos" title (system nav bar hidden by Phase 04).
-///   2. Hero block — eyebrow "Sun* Annual Awards 2025" + gold "ALL KUDOS" title.
-///   3. `AllKudosFeedList` — infinite-scroll `LazyVStack` of `KudosCard`s.
-///
-/// Background: `kudos-hero-bg-group` key-visual anchored at the top, fading into
-/// `Color.allKudosScreenBg` — mirrors `KudosView.screenBackground`.
-///
-/// This view is static/presentational. All data and callbacks are injected as props;
-/// no ViewModel is held here (Phase 04 owns integration).
+/// Full-screen "All Kudos" feed (MoMorph screen `j_a2GQWKDJ`).
+/// Pure presentation — system nav bar is hidden by the parent container.
 @MainActor
 struct AllKudosView: View {
 
@@ -47,8 +34,7 @@ struct AllKudosView: View {
     let onRecipientTap: (KudosCardID) -> Void
     /// Fires when the last card enters the viewport — triggers next page load.
     let onReachBottom: () -> Void
-    /// Fires on pull-to-refresh. `async` so SwiftUI's `.refreshable` can await
-    /// the work and keep the spinner visible until the refetch completes.
+    /// `async` so `.refreshable` keeps the spinner visible until refetch ends.
     let onRefresh: () async -> Void
 
     // MARK: - Body
@@ -101,13 +87,9 @@ struct AllKudosView: View {
         .ignoresSafeArea()
     }
 
-    // MARK: - Navigation bar (Figma 6891:16000 — same pattern as CreateKudoView)
-    //
-    // Transparent header sitting on top of the key-visual. 89pt total height
-    // (47pt status-bar spacer + 42pt content row) mirrors the iOS standard
-    // large-screen navigation bar geometry used by `CreateKudoView`. Title
-    // uses Helvetica Neue 17pt weight 500 with 0.5pt tracking — confirmed
-    // against Figma node 6891:16006.
+    // MARK: - Navigation bar (Figma 6891:16000)
+    // 89pt total = 47pt status-bar spacer + 42pt content row, mirroring
+    // `CreateKudoView`'s header geometry.
 
     private var navigationBar: some View {
         ZStack {
@@ -161,8 +143,7 @@ struct AllKudosView: View {
                 .fill(Color(red: 46.0 / 255, green: 57.0 / 255, blue: 64.0 / 255))
                 .frame(height: 1)
 
-            // Figma node I6891:16644;75:1887: Montserrat Medium 22pt / line-height 28pt.
-            // Earlier Phase 01 deviation used Bold 32pt — reverted to spec per user feedback.
+            // Montserrat Medium 22pt (Figma node I6891:16644;75:1887).
             Text("ALL KUDOS")
                 .font(.custom("Montserrat-Medium", size: 22))
                 .foregroundColor(.allKudosGold)

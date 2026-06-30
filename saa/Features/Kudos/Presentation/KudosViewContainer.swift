@@ -2,26 +2,22 @@ import SwiftUI
 
 // MARK: - KudosViewContainer
 
-/// Owns the `KudosViewModel` lifecycle and adapts Domain entities to the UI structs
-/// that `KudosView` consumes.
+/// Owns the `KudosViewModel` lifecycle and adapts Domain entities to UI structs.
+/// Domain → UI bridging lives here so the VM stays pure-Domain and SwiftUI-free.
 ///
-/// Bridging responsibility (Domain → UI structs) lives here, not in the VM, so the
-/// VM stays pure-Domain and straightforward to unit-test without SwiftUI imports.
-///
-/// Language selection is bound to the shared `LanguagePreference` environment object
-/// — the same source `saaApp` wires into `\.locale`. Using a local `@State` here
-/// would update the chip visually but leave the app locale unchanged, so the
-/// dropdown would silently fail to switch language. Match the pattern used by
-/// `HomeViewContainer` and `LoginViewContainer`.
+/// Language uses the shared `LanguagePreference` env object (not local `@State`)
+/// because `saaApp` wires the same source into `\.locale`.
 struct KudosViewContainer: View {
 
     // MARK: - Routes
 
-    /// Navigation routes pushed from inside the Kudos tab. Currently only `all`
-    /// (the All Kudos screen); future routes (kudos detail, sender profile) would
-    /// extend this enum.
+    /// `.detail` carries the full `Kudos` at push time so the back/forward stack
+    /// stays stable; the destination re-reads the latest snapshot via
+    /// `vm.findKudos` so likes toggled elsewhere stay in sync without a refetch.
     enum Route: Hashable {
         case all
+        case detail(Kudos)
+        case profile(KudosAuthor)
     }
 
     // MARK: - ViewModel
@@ -50,12 +46,52 @@ struct KudosViewContainer: View {
                     case .all:
                         AllKudosViewContainer(
                             vm: vm,
+                            onBack: { navPath.removeLast() },
+                            onPushDetail: { kudos in navPath.append(.detail(kudos)) },
+                            onHashtagTap: { tag in popToRootAndFilterHashtag(tag) }
+                        )
+                        .toolbar(.hidden, for: .navigationBar)
+                    case .detail(let kudos):
+                        KudosDetailDestination(
+                            kudos: kudos,
+                            vm: vm,
+                            onBack: { navPath.removeLast() },
+                            onPushProfile: { author in navPath.append(.profile(author)) },
+                            onHashtagTap: { tag in popToRootAndFilterHashtag(tag) }
+                        )
+                        .toolbar(.hidden, for: .navigationBar)
+                    case .profile(let author):
+                        KudosAuthorProfileStubView(
+                            author: author,
                             onBack: { navPath.removeLast() }
                         )
                         .toolbar(.hidden, for: .navigationBar)
                     }
                 }
         }
+        // Shared across every Kudos-tab route. The VM owns the 3-second
+        // auto-dismiss; this overlay only reflects `vm.currentToast`.
+        .overlay(alignment: .bottom) { toastOverlay }
+    }
+
+    private var toastOverlay: some View {
+        // ZStack scopes the animation to the toast subtree only.
+        ZStack {
+            if let toast = vm.currentToast {
+                Text(LocalizedStringKey(toast.messageKey))
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.black.opacity(0.8))
+                    .clipShape(Capsule())
+                    // Lift above HomeBottomNavBar (~83pt) into the safe area.
+                    .padding(.bottom, 110)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .accessibilityIdentifier("kudos.toast")
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: vm.currentToast)
     }
 
     // MARK: - Root content (Kudos tab landing screen)
@@ -80,15 +116,15 @@ struct KudosViewContainer: View {
             onSendKudos: { isCreateKudosPresented = true },
             onCardCopyLink: { vm.copyLink($0) },
             onCardLike: { id in Task { await vm.toggleLike(id) } },
-            onCardViewDetail: { _ in },
+            onCardViewDetail: { id in pushDetailForCardID(id) },
             onHashtagTagTap: { tag in Task { await vm.onHashtagTagTapped(tag) } },
             onSenderTap: { _ in },
             onRecipientTap: { _ in },
             onTopRecipientTap: { _ in },
             onOpenSecretBox: { vm.openSecretBox() },
             onViewAllKudos: { navPath.append(.all) },
-            onSelectHashtag: { id in Task { await vm.setHashtagFilter(id) } },
-            onSelectDepartment: { id in Task { await vm.setDepartmentFilter(id) } }
+            onSelectHashtag: { id in Task { await vm.toggleHashtagFilter(id) } },
+            onSelectDepartment: { id in Task { await vm.toggleDepartmentFilter(id) } }
         )
         .task { await vm.onAppear() }
         .toolbar(.hidden, for: .navigationBar)
@@ -105,7 +141,6 @@ struct KudosViewContainer: View {
 
     // MARK: - Derived bindings
 
-    /// Two-way binding for carousel index that routes writes through the VM method.
     private var carouselBinding: Binding<Int> {
         Binding(
             get: { vm.carouselIndex },
@@ -113,8 +148,8 @@ struct KudosViewContainer: View {
         )
     }
 
-    /// Converts `selectedHashtagId` → `HashtagOption?` for the view.
-    /// On write, extracts the id and calls `setHashtagFilter` with re-tap-to-clear semantics.
+    /// Binding setter assigns (no toggle): writes via the binding are direct
+    /// state assignments, not user taps. Tap-to-toggle lives in `onSelectHashtag`.
     private var selectedHashtagBinding: Binding<HashtagOption?> {
         Binding(
             get: {
@@ -129,10 +164,34 @@ struct KudosViewContainer: View {
         )
     }
 
-    /// Converts `selectedDepartmentId` → `DepartmentOption?` for the view.
-    ///
-    /// Displays `department.code` (stable short code such as `"CEV1"`) rather than
-    /// `department.name` so the dropdown labels stay compact and locale-stable.
+    // MARK: - Detail navigation helpers
+
+    /// Push detail for a card id from feed or highlights. Silent no-op when
+    /// the id is no longer present (guards against a tap arriving after a
+    /// filter change unmounted the source card).
+    private func pushDetailForCardID(_ id: KudosCardID) {
+        if let kudos = vm.feed.first(where: { $0.id == id })
+            ?? vm.highlights.first(where: { $0.id == id }) {
+            navPath.append(.detail(kudos))
+        }
+    }
+
+    /// Pop back to root, then apply the matching hashtag as the active filter.
+    /// Unmatched tag → cleared filter (nil).
+    func popToRootAndFilterHashtag(_ tag: String) {
+        navPath.removeAll()
+        let matchingId = Self.matchingHashtagId(tag: tag, in: vm.hashtags)
+        Task { await vm.setHashtagFilter(matchingId) }
+    }
+
+    /// `static` so tests can exercise the lookup without a View instance.
+    static func matchingHashtagId(tag: String, in hashtags: [Hashtag]) -> Hashtag.ID? {
+        let normalised = tag.hasPrefix("#") ? tag : "#\(tag)"
+        return hashtags.first { $0.tag == normalised || $0.tag == tag }?.id
+    }
+
+    /// Dropdown label uses `department.code` (stable short code, e.g. `"CEV1"`)
+    /// rather than `name` so the 129pt chip doesn't truncate.
     private var selectedDepartmentBinding: Binding<DepartmentOption?> {
         Binding(
             get: {
@@ -183,16 +242,74 @@ private extension KudosViewContainer {
             reward
         )
         return KudosRecipientData(
-            // Use a stable deterministic string when userId is nil so SwiftUI's
-            // ForEach diffing doesn't treat each render as a new item.
-            // Strategy: derive a fixed string from displayName so identity is
-            // consistent across renders (no random UUID per call).
+            // Stable id when userId is nil so SwiftUI ForEach diffing is consistent.
             id: author.userId?.uuidString ?? "anon-\(author.displayName)",
             name: author.displayName,
             avatarAssetName: KudosCardAdapter.avatarAsset(for: author),
             rewardLabel: rewardLabel
         )
     }
+}
+
+// MARK: - Detail destination subview
+
+/// Wraps `ViewKudoDetailView` as a `NavigationStack` destination. Owns the
+/// lightbox `@State` locally so it resets on every push.
+private struct KudosDetailDestination: View {
+
+    let kudos: Kudos
+    @ObservedObject var vm: KudosViewModel
+    let onBack: () -> Void
+    let onPushProfile: (KudosAuthor) -> Void
+    let onHashtagTap: (String) -> Void
+
+    @State private var lightbox: LightboxSelection?
+    /// Storage-path → signed URL map. The `kudos-images` bucket is private.
+    @State private var resolvedImageURLs: [String: URL] = [:]
+
+    var body: some View {
+        let live = liveKudos
+        let departmentLookup = Dictionary(uniqueKeysWithValues: vm.departments.map { ($0.id, $0) })
+        ViewKudoDetailView(
+            kudos: live,
+            departments: departmentLookup,
+            resolvedImageURLs: resolvedImageURLs,
+            onBack: onBack,
+            onLike: { Task { await vm.toggleLike(live.id) } },
+            onCopyLink: { vm.copyLink(live.id) },
+            onHashtagTap: onHashtagTap,
+            onSenderTap: { onPushProfile(live.sender) },
+            onRecipientTap: { onPushProfile(live.recipient) },
+            onImageTap: { idx in lightbox = LightboxSelection(index: idx) }
+        )
+        .task(id: live.attachments.map(\.storagePath)) {
+            resolvedImageURLs = await vm.resolveAttachmentImageURLs(for: live.attachments)
+        }
+        .fullScreenCover(item: $lightbox) { sel in
+            ImageLightboxView(
+                // Mirror gallery's two-path resolution: prefer signed URL,
+                // fall back to direct parse for legacy HTTPS rows.
+                imageURLs: live.attachments.compactMap { att in
+                    resolvedImageURLs[att.storagePath]
+                        ?? ViewKudoDetailView.directHTTPURL(from: att.storagePath)
+                },
+                initialIndex: sel.index,
+                onDismiss: { lightbox = nil }
+            )
+        }
+    }
+
+    /// Latest snapshot from VM (highlights → feed → allFeed), falling back to
+    /// the route-carried `kudos` when the id has been removed from all lists.
+    private var liveKudos: Kudos {
+        vm.findKudos(id: kudos.id) ?? kudos
+    }
+}
+
+/// `.fullScreenCover(item:)` requires `Identifiable` — wrap the Int.
+private struct LightboxSelection: Identifiable, Hashable {
+    let index: Int
+    var id: Int { index }
 }
 
 // MARK: - Preview

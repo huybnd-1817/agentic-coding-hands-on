@@ -4,6 +4,20 @@ All significant changes to the SAA iOS app. Newest first.
 
 ---
 
+## [feature/view-kudo-detail] — 2026-06-29
+
+### Kudo detail screen, image lightbox, and author profile stub
+
+**What shipped:**
+- New `Detail/` directory under `Kudos/Presentation/`: `ViewKudoDetailView`, `ImageLightboxView`, `KudosAuthorProfileStubView`
+- `KudosViewContainer.Route` extended: `case detail(Kudos)`, `case profile(KudosAuthor)`; `popToRootAndFilterHashtag(_:)` helper added
+- `ImageLightboxView`: fullscreen image pager for kudo attachments
+- `KudosAuthorProfileStubView`: lightweight profile placeholder (coming-soon state)
+- Localization: 4 new keys — `kudos.detail.title`, `kudos.detail.profile.title`, `kudos.detail.profile.comingSoon`, `kudos.detail.lightbox.close` (EN + VI)
+- Tests: `KudosViewContainerRouteTests`, `KudosViewModelLikeSyncDetailTests` (unit); `ViewKudoDetailScreenUITests` (UI); `KudosLocalizationKeysExistTests` extended
+
+---
+
 ## [feature/all-kudos] — 2026-06-29 — Test hardening (tests only)
 
 ### All Kudos: unit + UI test expansion

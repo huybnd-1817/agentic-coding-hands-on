@@ -3,10 +3,8 @@ import Foundation
 
 // MARK: - KudosMockData
 
-/// Static preview fixtures for `KudosViewContainer` and `KudosViewModel` previews.
-///
-/// Uses the same deterministic `UUID`s as `MockKudosRepository` so snapshot tests
-/// produce stable output. This enum is stripped from release builds via `#if DEBUG`.
+/// DEBUG-only preview fixtures. Uses the same deterministic UUIDs as
+/// `MockKudosRepository` so snapshot tests stay stable.
 enum KudosMockData {
 
     // MARK: - Shared authors
@@ -57,7 +55,6 @@ enum KudosMockData {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: Array(hashtags.prefix(3)),
-            photoURL: nil,
             attachments: [],
             heartCount: 1000,
             isLikedByMe: false,
@@ -74,7 +71,6 @@ enum KudosMockData {
             isAnonymous: false,
             anonymousNickname: nil,
             hashtags: Array(hashtags.suffix(2)),
-            photoURL: nil,
             attachments: [],
             heartCount: 750,
             isLikedByMe: true,
@@ -108,7 +104,6 @@ enum KudosMockData {
 
     // MARK: - Assembled snapshot
 
-    /// A fully-populated `KudosScreenSnapshot` for use in `KudosViewContainer` previews.
     static let sample = KudosScreenSnapshot(
         highlights: kudosList,
         feed: kudosList,
