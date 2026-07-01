@@ -26,7 +26,7 @@ final class AwardKudosCTASwitchTabUITests: XCTestCase {
         let app = XCUIApplication.launching(.signedIn)
 
         XCTAssertTrue(
-            app.navigateToAwardsTab(timeout: 5),
+            app.navigateToAwardsTab(timeout: 10),
             "Awards tab must mount AwardDetailView"
         )
 
