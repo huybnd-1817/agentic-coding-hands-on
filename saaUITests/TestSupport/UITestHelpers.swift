@@ -64,7 +64,7 @@ extension XCUIApplication {
     /// the real detail view (`award.detail.root`) instead of the loading
     /// placeholder (`award.tab.loading`).
     @discardableResult
-    func navigateToAwardsTab(timeout: TimeInterval = 10) -> Bool {
+    func navigateToAwardsTab(timeout: TimeInterval = 15) -> Bool {
         // Prep step: wait for the Home awards carousel to load. The `top_talent`
         // card is the first-sorted award and always present in the mock roster.
         let firstCard = descendants(matching: .any)

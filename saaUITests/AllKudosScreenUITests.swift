@@ -132,11 +132,13 @@ final class AllKudosScreenUITests: XCTestCase {
         let backButton = app.descendants(matching: .button).matching(
             NSPredicate(format: "label IN {'Quay Lại', 'Back'}")
         ).firstMatch
-        XCTAssertTrue(backButton.waitForExistence(timeout: 5), "Back button must exist on All Kudos")
+        // Bumped 5s → 15s: parallel simulator clones on CI take longer to
+        // surface localized system-back-button labels.
+        XCTAssertTrue(backButton.waitForExistence(timeout: 15), "Back button must exist on All Kudos")
         backButton.tap()
 
         XCTAssertTrue(
-            element("kudos.all.viewAllButton", in: app).waitForExistence(timeout: 5),
+            element("kudos.all.viewAllButton", in: app).waitForExistence(timeout: 15),
             "Kudos tab content must remount after popping the All Kudos screen"
         )
     }
@@ -152,8 +154,10 @@ final class AllKudosScreenUITests: XCTestCase {
 
         let senderPredicate = NSPredicate(format: "label CONTAINS 'Huỳnh Dương'")
         let senderLabels = app.staticTexts.matching(senderPredicate)
+        // Bumped 5s → 15s: on parallel CI simulator clones the second feed
+        // card can take longer to enter the accessibility tree after the push.
         XCTAssertTrue(
-            senderLabels.element(boundBy: 1).waitForExistence(timeout: 5),
+            senderLabels.element(boundBy: 1).waitForExistence(timeout: 15),
             "All Kudos feed must render at least 2 cards from the mock fixture"
         )
     }

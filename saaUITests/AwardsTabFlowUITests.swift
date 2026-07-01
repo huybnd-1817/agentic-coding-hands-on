@@ -52,7 +52,7 @@ final class AwardsTabFlowUITests: XCTestCase {
         let app = XCUIApplication.launching(.signedIn)
 
         XCTAssertTrue(
-            app.navigateToAwardsTab(timeout: 10),
+            app.navigateToAwardsTab(timeout: 15),
             "Awards tab must mount AwardDetailView"
         )
 
