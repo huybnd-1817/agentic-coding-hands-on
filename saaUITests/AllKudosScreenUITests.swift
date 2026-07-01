@@ -171,7 +171,7 @@ final class AllKudosScreenUITests: XCTestCase {
         let app = try launchAndOpenAllKudos()
 
         let scrollView = app.scrollViews.firstMatch
-        XCTAssertTrue(scrollView.waitForExistence(timeout: 3), "Feed scrollView must exist")
+        XCTAssertTrue(scrollView.waitForExistence(timeout: 10), "Feed scrollView must exist")
         scrollView.swipeDown(velocity: .slow)
 
         // The test name (`DoesNotCrash`) reflects the intent: did the swipe
@@ -194,6 +194,13 @@ final class AllKudosScreenUITests: XCTestCase {
         let app = try launchAndOpenAllKudos()
 
         let kudosNavButton = navTab(label: "Kudos", in: app)
+        // Wait for the button to exist and settle before testing hittability.
+        // Without this guard the synchronous `isHittable` can return false on
+        // cold simulator clones that haven't fully rendered the ZStack overlay.
+        XCTAssertTrue(
+            kudosNavButton.waitForExistence(timeout: 15),
+            "Kudos bottom-nav button must be visible on the All Kudos screen"
+        )
         XCTAssertTrue(
             kudosNavButton.isHittable,
             "Kudos bottom-nav button must remain hittable (not occluded) on the All Kudos screen"
