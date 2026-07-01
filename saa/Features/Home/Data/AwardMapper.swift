@@ -17,6 +17,16 @@ struct AwardDTO: Decodable, Sendable {
     let description_vi: String
     let thumbnail_url: String?
     let sort_order: Int
+
+    // Detail-screen columns (Phase 08). Declared optional so the decoder
+    // survives schema drift — if the migration hasn't been applied to the
+    // remote yet, the row decodes with `nil` instead of crashing. The mapper
+    // substitutes safe defaults below.
+    let quantity: Int?
+    let quantity_unit: String?
+    let prize_value_individual: String?
+    let prize_value_team: String?
+    let prize_note: String?
 }
 
 // MARK: - AwardMapper
@@ -33,7 +43,12 @@ enum AwardMapper {
             descriptionEN: dto.description_en,
             descriptionVI: dto.description_vi,
             thumbnailURL: dto.thumbnail_url.flatMap(URL.init(string:)),
-            sortOrder: dto.sort_order
+            sortOrder: dto.sort_order,
+            quantity: dto.quantity ?? 0,
+            quantityUnit: dto.quantity_unit ?? "",
+            prizeValueIndividual: dto.prize_value_individual ?? "",
+            prizeValueTeam: dto.prize_value_team,
+            prizeNote: dto.prize_note ?? ""
         )
     }
 }

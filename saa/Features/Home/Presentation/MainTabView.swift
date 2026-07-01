@@ -28,6 +28,9 @@ struct MainTabView<HomeContent: View>: View {
     /// Injected from `HomeViewContainer` for cross-tab nav. `nil` → use `@State`.
     var externalSelection: Binding<NavTab>?
 
+    /// Awards tab root, fully constructed at the composition root.
+    let awardsContainer: AwardsViewContainer
+
     /// Kudos feature ViewModel, fully constructed at the composition root.
     let kudosViewModel: KudosViewModel
 
@@ -43,10 +46,12 @@ struct MainTabView<HomeContent: View>: View {
     init(
         home: HomeContent,
         externalSelection: Binding<NavTab>? = nil,
+        awardsContainer: AwardsViewContainer,
         kudosViewModel: KudosViewModel
     ) {
         self.home = home
         self.externalSelection = externalSelection
+        self.awardsContainer = awardsContainer
         self.kudosViewModel = kudosViewModel
     }
 
@@ -59,7 +64,7 @@ struct MainTabView<HomeContent: View>: View {
                     .tag(NavTab.home)
                     .toolbar(.hidden, for: .tabBar)
 
-                AwardsTabStubView()
+                awardsContainer
                     .tag(NavTab.awards)
                     .toolbar(.hidden, for: .tabBar)
 
@@ -84,8 +89,15 @@ struct MainTabView<HomeContent: View>: View {
 
 #if DEBUG
 #Preview {
-    MainTabView(
+    let previewAwards = HomeMockData.previewAwards
+    let initial = previewAwards.min(by: { $0.sortOrder < $1.sortOrder }) ?? previewAwards[0]
+    return MainTabView(
         home: Color.black.overlay(Text("HomeView placeholder").foregroundStyle(.white)),
+        awardsContainer: AwardsViewContainer(
+            awards: previewAwards,
+            activeTab: .constant(.awards),
+            makeViewModel: AwardDetailViewModel(awards: previewAwards, initiallySelected: initial)
+        ),
         kudosViewModel: KudosViewModel(
             loadUseCase: LoadKudosScreenUseCase(repository: MockKudosRepository()),
             toggleReactionUseCase: ToggleKudosReactionUseCase(repository: MockKudosRepository()),
@@ -93,5 +105,6 @@ struct MainTabView<HomeContent: View>: View {
             repository: MockKudosRepository()
         )
     )
+    .environmentObject(LanguagePreference())
 }
 #endif

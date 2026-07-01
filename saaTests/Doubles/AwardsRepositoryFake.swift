@@ -42,7 +42,12 @@ final class AwardsRepositoryFake: AwardsRepositoryProtocol, @unchecked Sendable 
             descriptionEN: "Best individual contributors.",
             descriptionVI: "Cá nhân xuất sắc.",
             thumbnailURL: nil,
-            sortOrder: 1
+            sortOrder: 1,
+            quantity: 10,
+            quantityUnit: "Cá nhân",
+            prizeValueIndividual: "7.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         ),
         Award(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
@@ -52,7 +57,12 @@ final class AwardsRepositoryFake: AwardsRepositoryProtocol, @unchecked Sendable 
             descriptionEN: "Most impactful projects.",
             descriptionVI: "Dự án có tác động lớn nhất.",
             thumbnailURL: nil,
-            sortOrder: 2
+            sortOrder: 2,
+            quantity: 2,
+            quantityUnit: "Tập thể",
+            prizeValueIndividual: "15.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         ),
         Award(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
@@ -62,7 +72,12 @@ final class AwardsRepositoryFake: AwardsRepositoryProtocol, @unchecked Sendable 
             descriptionEN: "Best embodiment of Sun* values.",
             descriptionVI: "Văn hoá và giá trị cốt lõi.",
             thumbnailURL: nil,
-            sortOrder: 3
+            sortOrder: 3,
+            quantity: 1,
+            quantityUnit: "Cá nhân",
+            prizeValueIndividual: "7.000.000 VNĐ",
+            prizeValueTeam: nil,
+            prizeNote: "cho mỗi giải thưởng"
         )
     ]
 }
