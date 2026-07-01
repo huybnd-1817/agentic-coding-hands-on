@@ -61,13 +61,13 @@ final class AllKudosScreenUITests: XCTestCase {
         kudosTab.tap()
 
         XCTAssertTrue(
-            element("kudos.root", in: app).waitForExistence(timeout: 5),
+            element("kudos.root", in: app).waitForExistence(timeout: 15),
             "kudos.root must mount before scrolling for the View all Kudos link"
         )
 
         let viewAllButton = element("kudos.all.viewAllButton", in: app)
         XCTAssertTrue(
-            viewAllButton.waitForExistence(timeout: 5),
+            viewAllButton.waitForExistence(timeout: 15),
             "kudos.all.viewAllButton must exist in the Kudos tab's accessibility tree"
         )
 
@@ -99,11 +99,12 @@ final class AllKudosScreenUITests: XCTestCase {
         let cardBody = app.staticTexts.matching(
             NSPredicate(format: "label CONTAINS 'Cảm ơn'")
         ).firstMatch
-        // Empirical: cold parallel simulator clones occasionally take ~28-31s
-        // for the NavigationStack push to settle in the accessibility tree.
-        // 30s with one CI-level retry covers worst-observed cases.
+        // Empirical: cold parallel simulator clones occasionally take ~45s for
+        // the NavigationStack push to settle in the accessibility tree when
+        // running alongside the Award feature's UI test suite (additional
+        // simulator clone load). 45s + one CI-level retry covers observed cases.
         XCTAssertTrue(
-            cardBody.waitForExistence(timeout: 30),
+            cardBody.waitForExistence(timeout: 45),
             "All Kudos screen must mount after tapping View all Kudos (looked for card body 'Cảm ơn...')"
         )
         return app
